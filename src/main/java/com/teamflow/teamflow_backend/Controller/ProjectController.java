@@ -1,14 +1,15 @@
+package com.teamflow.teamflow_backend.Controller;
 
-        package com.teamflow.teamflow_backend.Controller;
-
-import com.teamflow.teamflow_backend.Entity.Project;
+import com.teamflow.teamflow_backend.DTO.Project.CreateProjectRequest;
+import com.teamflow.teamflow_backend.DTO.Project.ProjectResponse;
+import com.teamflow.teamflow_backend.DTO.Project.UpdateProjectRequest;
 import com.teamflow.teamflow_backend.Service.ProjectService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/projects")
@@ -20,63 +21,75 @@ public class ProjectController {
         this.projectService = projectService;
     }
 
-    // 1. CREATE: Returns 201 Created along with the saved Project object
+    // 1. CREATE
     @PostMapping("create")
-    public ResponseEntity<Project> createProject(@RequestBody Project project) {
-        Project savedProject = projectService.createProject(project);
+    public ResponseEntity<ProjectResponse> createProject(
+            @Valid @RequestBody CreateProjectRequest request) {
+
+        ProjectResponse savedProject =
+                projectService.createProject(request);
+
         return new ResponseEntity<>(savedProject, HttpStatus.CREATED);
     }
 
-    // 2. READ ALL: Returns 200 OK along with the list of projects
+
+    // 2. READ ALL
     @GetMapping("allprojects")
-    public ResponseEntity<List<Project>> getProjects() {
-        List<Project> projects = projectService.getAllProjects();
+    public ResponseEntity<?> getProjects() {
+
+        List<ProjectResponse> projects = projectService.getAllProjects();
+
+        if (projects.isEmpty()) {
+            return new ResponseEntity<>(
+                    "No projects found",
+                    HttpStatus.NOT_FOUND
+            );
+        }
+
         return new ResponseEntity<>(projects, HttpStatus.OK);
     }
 
-    // 3. READ BY ID: Returns 200 OK if found, or 404 NOT FOUND
+
+    // 3. READ BY ID
     @GetMapping("id/{id}")
-    public ResponseEntity<Project> findById(@PathVariable Integer id) {
-        Optional<Project> project =
-                Optional.ofNullable(projectService.getProjectById(id));
+    public ResponseEntity<ProjectResponse> findById(
+            @PathVariable String id) {
 
-        if (project.isPresent()) {
-            return new ResponseEntity<>(project.get(), HttpStatus.OK);
+        ProjectResponse project =
+                projectService.getProjectById(id);
+
+        if (project != null) {
+            return new ResponseEntity<>(project, HttpStatus.OK);
         }
 
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
-    // 4. UPDATE: Returns 200 OK with updated data, or 404 NOT FOUND
+
+    // 4. UPDATE
     @PutMapping("update/{id}")
-    public ResponseEntity<Project> updateProject(
-            @PathVariable Integer id,
-            @RequestBody Project projectDetails) {
+    public ResponseEntity<ProjectResponse> updateProject(
+            @PathVariable String id,
+            @Valid @RequestBody UpdateProjectRequest request) {
 
-        Optional<Project> updatedProject =
-                Optional.ofNullable(
-                        projectService.updateProject(id, projectDetails)
-                );
+        ProjectResponse updatedProject =
+                projectService.updateProject(id, request);
 
-        if (updatedProject.isPresent()) {
-            return new ResponseEntity<>(updatedProject.get(), HttpStatus.OK);
+        if (updatedProject != null) {
+            return new ResponseEntity<>(updatedProject, HttpStatus.OK);
         }
 
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
-    // 5. DELETE: Returns 204 NO CONTENT on successful deletion
+
+    // 5. DELETE
     @DeleteMapping("delete/{id}")
-    public ResponseEntity<Void> deleteProject(@PathVariable Integer id) {
+    public ResponseEntity<Void> deleteProject(
+            @PathVariable String id) {
 
-        Optional<Project> existingProject =
-                Optional.ofNullable(projectService.getProjectById(id));
+        projectService.deleteProject(id);
 
-        if (existingProject.isPresent()) {
-            projectService.deleteProject(id);
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        }
-
-        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }

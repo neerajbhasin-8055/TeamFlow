@@ -1,65 +1,118 @@
 package com.teamflow.teamflow_backend.Controller;
 
-import com.teamflow.teamflow_backend.Entity.User;
+import com.teamflow.teamflow_backend.DTO.User.CreateUserRequest;
+import com.teamflow.teamflow_backend.DTO.User.UpdateUserRequest;
+import com.teamflow.teamflow_backend.DTO.User.UserResponse;
 import com.teamflow.teamflow_backend.Service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
+
     private final UserService userService;
 
-    public UserController(UserService userService){
+    public UserController(UserService userService) {
         this.userService = userService;
     }
 
-    // 1. CREATE: Returns 201 Created along with the saved User object
+
+    // 1. CREATE
     @PostMapping("create")
-    public ResponseEntity<User> createUser(@RequestBody User user){
-        User savedUser = userService.createUser(user);
-        return new ResponseEntity<>(savedUser, HttpStatus.CREATED);
+    public ResponseEntity<UserResponse> createUser(
+            @Valid @RequestBody CreateUserRequest request) {
+
+        UserResponse savedUser =
+                userService.createUser(request);
+
+        return new ResponseEntity<>(
+                savedUser,
+                HttpStatus.CREATED
+        );
     }
 
-    // 2. READ ALL: Returns 200 OK along with the list of users
+
+    // 2. READ ALL
     @GetMapping("allusers")
-    public ResponseEntity<List<User>> getUsers(){
-        List<User> users = userService.findAllUser();
-        return new ResponseEntity<>(users, HttpStatus.OK);
+    public ResponseEntity<List<UserResponse>> getUsers() {
+
+        List<UserResponse> users =
+                userService.findAllUser();
+
+        return new ResponseEntity<>(
+                users,
+                HttpStatus.OK
+        );
     }
 
-    // 3. READ BY ID: Returns 200 OK if found, or 404 NOT FOUND
+
+    // 3. READ BY ID
     @GetMapping("id/{id}")
-    public ResponseEntity<User> findById(@PathVariable Integer id){
-        Optional<User> user = Optional.ofNullable(userService.findById(id));
-        if(user.isPresent()){
-            return new ResponseEntity<>(user.get(), HttpStatus.OK);
+    public ResponseEntity<UserResponse> findById(
+            @PathVariable String id) {
+
+        UserResponse user =
+                userService.findById(id);
+
+        if (user != null) {
+            return new ResponseEntity<>(
+                    user,
+                    HttpStatus.OK
+            );
         }
-        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+
+        return new ResponseEntity<>(
+                HttpStatus.NOT_FOUND
+        );
     }
 
-    // 4. UPDATE: Returns 200 OK with updated data, or 404 NOT FOUND if user doesn't exist
+
+    // 4. UPDATE
     @PutMapping("update/{id}")
-    public ResponseEntity<User> updateUser(@PathVariable Integer id, @RequestBody User userDetails){
-        Optional<User> updatedUser = Optional.ofNullable(userService.updateUser(id, userDetails));
-        if(updatedUser.isPresent()){
-            return new ResponseEntity<>(updatedUser.get(), HttpStatus.OK);
+    public ResponseEntity<UserResponse> updateUser(
+            @PathVariable String id,
+            @Valid @RequestBody UpdateUserRequest request) {
+
+        UserResponse updatedUser =
+                userService.updateUser(id, request);
+
+        if (updatedUser != null) {
+            return new ResponseEntity<>(
+                    updatedUser,
+                    HttpStatus.OK
+            );
         }
-        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+
+        return new ResponseEntity<>(
+                HttpStatus.NOT_FOUND
+        );
     }
 
-    // 5. DELETE: Returns 204 NO CONTENT on a successful request, or 404 if the user is missing
+
+    // 5. DELETE
     @DeleteMapping("delete/{id}")
-    public ResponseEntity<Void> deleteUser(@PathVariable Integer id){
-        Optional<User> existingUser = Optional.ofNullable(userService.findById(id));
-        if(existingUser.isPresent()){
+    public ResponseEntity<Void> deleteUser(
+            @PathVariable String id) {
+
+        UserResponse existingUser =
+                userService.findById(id);
+
+        if (existingUser != null) {
+
             userService.deleteUser(id);
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT); // 204 No Content is best practice for deletes
+
+            return new ResponseEntity<>(
+                    HttpStatus.NO_CONTENT
+            );
         }
-        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+
+        return new ResponseEntity<>(
+                HttpStatus.NOT_FOUND
+        );
     }
 }

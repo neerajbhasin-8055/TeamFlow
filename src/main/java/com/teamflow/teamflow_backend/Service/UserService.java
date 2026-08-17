@@ -1,5 +1,8 @@
 package com.teamflow.teamflow_backend.Service;
 
+import com.teamflow.teamflow_backend.DTO.User.CreateUserRequest;
+import com.teamflow.teamflow_backend.DTO.User.UpdateUserRequest;
+import com.teamflow.teamflow_backend.DTO.User.UserResponse;
 import com.teamflow.teamflow_backend.Entity.User;
 import com.teamflow.teamflow_backend.Repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -9,37 +12,102 @@ import java.util.List;
 
 @Service
 public class UserService {
+
     private final UserRepository userRepository;
 
-    public UserService(UserRepository userRepository){
+    public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
-    public User createUser(User user){
+
+    // CREATE
+    public UserResponse createUser(CreateUserRequest request) {
+
+        // DTO -> Entity
+        User user = new User();
+
+        user.setName(request.getName());
+        user.setEmail(request.getEmail());
+        user.setPassword(request.getPassword());
+
+        // Backend-generated fields
+        user.setRole("USER");
         user.setCreatedAt(new Date());
-        return userRepository.save(user);
+
+        // Save Entity
+        User savedUser = userRepository.save(user);
+
+        // Entity -> DTO
+        return convertToResponse(savedUser);
     }
-    public List<User> findAllUser(){
-        return userRepository.findAll();
+
+
+    // READ ALL
+    public List<UserResponse> findAllUser() {
+
+        return userRepository.findAll()
+                .stream()
+                .map(this::convertToResponse)
+                .toList();
     }
-    public User findById(Integer id){
-        return userRepository.findById(id).orElse(null);
-    }
-    public User updateUser(Integer id, User userDetails){
-        User existingUser = userRepository.findById(id).orElse(null);
-        if(existingUser == null){
+
+
+    // READ BY ID
+    public UserResponse findById(String id) {
+
+        User user = userRepository.findById(id).orElse(null);
+
+        if (user == null) {
             return null;
         }
-        existingUser.setEmail(userDetails.getEmail());
-        existingUser.setName(userDetails.getName());
-        existingUser.setPassword(userDetails.getPassword());
-        existingUser.setRole(userDetails.getRole());
 
-        return userRepository.save(existingUser);
+        return convertToResponse(user);
     }
-    public void deleteUser(Integer id){
-        if (userRepository.existsById(id)) { // Quick index check, doesn't pull the full document
-            userRepository.deleteById(id);   // Direct deletion command
+
+
+    // UPDATE
+    public UserResponse updateUser(
+            String id,
+            UpdateUserRequest request) {
+
+        User existingUser =
+                userRepository.findById(id).orElse(null);
+
+        if (existingUser == null) {
+            return null;
         }
 
+        // DTO -> Existing Entity
+        existingUser.setName(request.getName());
+        existingUser.setEmail(request.getEmail());
+
+        User updatedUser =
+                userRepository.save(existingUser);
+
+        // Entity -> DTO
+        return convertToResponse(updatedUser);
+    }
+
+
+    // DELETE
+    public void deleteUser(String id) {
+
+        if (userRepository.existsById(id)) {
+            userRepository.deleteById(id);
+        }
+    }
+
+
+    // ENTITY -> RESPONSE DTO
+    private UserResponse convertToResponse(User user) {
+
+        UserResponse response = new UserResponse();
+
+        response.setId(user.getId());
+        response.setName(user.getName());
+        response.setEmail(user.getEmail());
+        response.setRole(user.getRole());
+        response.setCreatedAt(user.getCreatedAt());
+
+        return response;
     }
 }

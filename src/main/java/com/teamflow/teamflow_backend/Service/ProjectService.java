@@ -1,6 +1,8 @@
+package com.teamflow.teamflow_backend.Service;
 
-        package com.teamflow.teamflow_backend.Service;
-
+import com.teamflow.teamflow_backend.DTO.Project.CreateProjectRequest;
+import com.teamflow.teamflow_backend.DTO.Project.ProjectResponse;
+import com.teamflow.teamflow_backend.DTO.Project.UpdateProjectRequest;
 import com.teamflow.teamflow_backend.Entity.Project;
 import com.teamflow.teamflow_backend.Repository.ProjectRepository;
 import org.springframework.stereotype.Service;
@@ -17,44 +19,102 @@ public class ProjectService {
         this.projectRepository = projectRepository;
     }
 
-    public Project createProject(Project project) {
+    // CREATE
+    public ProjectResponse createProject(CreateProjectRequest request) {
+
+        // DTO -> Entity
+        Project project = new Project();
+
+        project.setName(request.getName());
+        project.setDescription(request.getDescription());
+        project.setStatus(request.getStatus());
+        project.setStartDate(request.getStartDate());
+        project.setDeadline(request.getDeadline());
+        project.setManagerId(request.getManagerId());
+        project.setTeamId(request.getTeamId());
+
         project.setCreatedAt(new Date());
         project.setUpdatedAt(new Date());
 
-        return projectRepository.save(project);
+        // Save Entity
+        Project savedProject = projectRepository.save(project);
+
+        // Entity -> DTO
+        return convertToResponse(savedProject);
     }
 
-    public List<Project> getAllProjects() {
-        return projectRepository.findAll();
+
+    // GET ALL
+    public List<ProjectResponse> getAllProjects() {
+
+        return projectRepository.findAll()
+                .stream()
+                .map(this::convertToResponse)     // shorter way of writing .map(project->convertToResponse
+                .toList();
     }
 
-    public Project getProjectById(Integer id) {
-        return projectRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Project not found with id: " + id));
+
+    // GET BY ID
+    public ProjectResponse getProjectById(String id) {
+
+        Project project = projectRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Project not found"));
+
+        return convertToResponse(project);
     }
 
-    public Project updateProject(Integer id, Project project) {
 
-        Project existingProject = projectRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Project not found with id: " + id));
+    // UPDATE
+    public ProjectResponse updateProject(String id, UpdateProjectRequest request) {
 
-        existingProject.setName(project.getName());
-        existingProject.setDescription(project.getDescription());
-        existingProject.setStatus(project.getStatus());
-        existingProject.setStartDate(project.getStartDate());
-        existingProject.setDeadline(project.getDeadline());
-        existingProject.setManagerId(project.getManagerId());
-        existingProject.setTeamId(project.getTeamId());
-        existingProject.setUpdatedAt(new Date());
+        Project project = projectRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Project not found"));
 
-        return projectRepository.save(existingProject);
+        // DTO -> Existing Entity
+        project.setName(request.getName());
+        project.setDescription(request.getDescription());
+        project.setStatus(request.getStatus());
+        project.setStartDate(request.getStartDate());
+        project.setDeadline(request.getDeadline());
+        project.setManagerId(request.getManagerId());
+        project.setTeamId(request.getTeamId());
+
+        project.setUpdatedAt(new Date());
+
+        Project updatedProject = projectRepository.save(project);
+
+        // Entity -> DTO
+        return convertToResponse(updatedProject);
     }
 
-    public void deleteProject(Integer id) {
-        Project existingProject = projectRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Project not found with id: " + id));
 
-        projectRepository.delete(existingProject);
+    // DELETE
+    public void deleteProject(String id) {
+
+        if (!projectRepository.existsById(id)) {
+            throw new RuntimeException("Project not found");
+        }
+
+        projectRepository.deleteById(id);
+    }
+
+
+    // ENTITY -> RESPONSE DTO
+    private ProjectResponse convertToResponse(Project project) {
+
+        ProjectResponse response = new ProjectResponse();
+
+        response.setId(project.getId());
+        response.setName(project.getName());
+        response.setDescription(project.getDescription());
+        response.setStatus(project.getStatus());
+        response.setStartDate(project.getStartDate());
+        response.setDeadline(project.getDeadline());
+        response.setCreatedAt(project.getCreatedAt());
+        response.setUpdatedAt(project.getUpdatedAt());
+        response.setManagerId(project.getManagerId());
+        response.setTeamId(project.getTeamId());
+
+        return response;
     }
 }
-

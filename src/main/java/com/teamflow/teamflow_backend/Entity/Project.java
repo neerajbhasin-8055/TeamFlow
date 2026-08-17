@@ -11,7 +11,7 @@ import java.util.Date;
 @Data
 public class Project {
     @Id
-    private Integer id;
+    private String id;
     private String name;
     private String description;
     private String status;
@@ -19,7 +19,7 @@ public class Project {
     private Date deadline;
     private Date createdAt;
     private Date updatedAt;
-    private Integer managerId;
-    private Integer teamId;
+    private String managerId;
+    private String teamId;
 
 }
