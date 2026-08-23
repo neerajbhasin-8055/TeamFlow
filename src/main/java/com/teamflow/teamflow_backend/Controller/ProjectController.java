@@ -21,7 +21,7 @@ public class ProjectController {
         this.projectService = projectService;
     }
 
-    // 1. CREATE
+    // CREATE
     @PostMapping("create")
     public ResponseEntity<ProjectResponse> createProject(
             @Valid @RequestBody CreateProjectRequest request) {
@@ -29,28 +29,26 @@ public class ProjectController {
         ProjectResponse savedProject =
                 projectService.createProject(request);
 
-        return new ResponseEntity<>(savedProject, HttpStatus.CREATED);
+        return new ResponseEntity<>(
+                savedProject,
+                HttpStatus.CREATED
+        );
     }
 
-
-    // 2. READ ALL
+    // READ ALL
     @GetMapping("allprojects")
-    public ResponseEntity<?> getProjects() {
+    public ResponseEntity<List<ProjectResponse>> getProjects() {
 
-        List<ProjectResponse> projects = projectService.getAllProjects();
+        List<ProjectResponse> projects =
+                projectService.getAllProjects();
 
-        if (projects.isEmpty()) {
-            return new ResponseEntity<>(
-                    "No projects found",
-                    HttpStatus.NOT_FOUND
-            );
-        }
-
-        return new ResponseEntity<>(projects, HttpStatus.OK);
+        return new ResponseEntity<>(
+                projects,
+                HttpStatus.OK
+        );
     }
 
-
-    // 3. READ BY ID
+    // READ BY ID
     @GetMapping("id/{id}")
     public ResponseEntity<ProjectResponse> findById(
             @PathVariable String id) {
@@ -58,15 +56,13 @@ public class ProjectController {
         ProjectResponse project =
                 projectService.getProjectById(id);
 
-        if (project != null) {
-            return new ResponseEntity<>(project, HttpStatus.OK);
-        }
-
-        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        return new ResponseEntity<>(
+                project,
+                HttpStatus.OK
+        );
     }
 
-
-    // 4. UPDATE
+    // UPDATE
     @PutMapping("update/{id}")
     public ResponseEntity<ProjectResponse> updateProject(
             @PathVariable String id,
@@ -75,21 +71,21 @@ public class ProjectController {
         ProjectResponse updatedProject =
                 projectService.updateProject(id, request);
 
-        if (updatedProject != null) {
-            return new ResponseEntity<>(updatedProject, HttpStatus.OK);
-        }
-
-        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        return new ResponseEntity<>(
+                updatedProject,
+                HttpStatus.OK
+        );
     }
 
-
-    // 5. DELETE
+    // DELETE
     @DeleteMapping("delete/{id}")
     public ResponseEntity<Void> deleteProject(
             @PathVariable String id) {
 
         projectService.deleteProject(id);
 
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        return new ResponseEntity<>(
+                HttpStatus.NO_CONTENT
+        );
     }
 }

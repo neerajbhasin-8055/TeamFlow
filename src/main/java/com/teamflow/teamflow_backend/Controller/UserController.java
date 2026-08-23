@@ -21,14 +21,12 @@ public class UserController {
         this.userService = userService;
     }
 
-
-    // 1. CREATE
+    // CREATE
     @PostMapping("create")
     public ResponseEntity<UserResponse> createUser(
             @Valid @RequestBody CreateUserRequest request) {
 
-        UserResponse savedUser =
-                userService.createUser(request);
+        UserResponse savedUser = userService.createUser(request);
 
         return new ResponseEntity<>(
                 savedUser,
@@ -36,13 +34,11 @@ public class UserController {
         );
     }
 
-
-    // 2. READ ALL
+    // READ ALL
     @GetMapping("allusers")
     public ResponseEntity<List<UserResponse>> getUsers() {
 
-        List<UserResponse> users =
-                userService.findAllUser();
+        List<UserResponse> users = userService.findAllUser();
 
         return new ResponseEntity<>(
                 users,
@@ -50,29 +46,20 @@ public class UserController {
         );
     }
 
-
-    // 3. READ BY ID
+    // READ BY ID
     @GetMapping("id/{id}")
     public ResponseEntity<UserResponse> findById(
             @PathVariable String id) {
 
-        UserResponse user =
-                userService.findById(id);
-
-        if (user != null) {
-            return new ResponseEntity<>(
-                    user,
-                    HttpStatus.OK
-            );
-        }
+        UserResponse user = userService.findById(id);
 
         return new ResponseEntity<>(
-                HttpStatus.NOT_FOUND
+                user,
+                HttpStatus.OK
         );
     }
 
-
-    // 4. UPDATE
+    // UPDATE
     @PutMapping("update/{id}")
     public ResponseEntity<UserResponse> updateUser(
             @PathVariable String id,
@@ -81,38 +68,21 @@ public class UserController {
         UserResponse updatedUser =
                 userService.updateUser(id, request);
 
-        if (updatedUser != null) {
-            return new ResponseEntity<>(
-                    updatedUser,
-                    HttpStatus.OK
-            );
-        }
-
         return new ResponseEntity<>(
-                HttpStatus.NOT_FOUND
+                updatedUser,
+                HttpStatus.OK
         );
     }
 
-
-    // 5. DELETE
+    // DELETE
     @DeleteMapping("delete/{id}")
     public ResponseEntity<Void> deleteUser(
             @PathVariable String id) {
 
-        UserResponse existingUser =
-                userService.findById(id);
-
-        if (existingUser != null) {
-
-            userService.deleteUser(id);
-
-            return new ResponseEntity<>(
-                    HttpStatus.NO_CONTENT
-            );
-        }
+        userService.deleteUser(id);
 
         return new ResponseEntity<>(
-                HttpStatus.NOT_FOUND
+                HttpStatus.NO_CONTENT
         );
     }
 }

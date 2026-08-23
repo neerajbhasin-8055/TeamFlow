@@ -21,41 +21,46 @@ public class TaskController {
         this.taskService = taskService;
     }
 
-
     // CREATE TASK
     @PostMapping("create")
     public ResponseEntity<TaskResponse> createTask(
             @Valid @RequestBody CreateTaskRequest request) {
 
-        TaskResponse savedTask = taskService.createTask(request);
+        TaskResponse savedTask =
+                taskService.createTask(request);
 
-        return new ResponseEntity<>(savedTask, HttpStatus.CREATED);
+        return new ResponseEntity<>(
+                savedTask,
+                HttpStatus.CREATED
+        );
     }
-
 
     // GET ALL TASKS
     @GetMapping("alltasks")
-    public ResponseEntity<?> getTasks() {
+    public ResponseEntity<List<TaskResponse>> getTasks() {
 
-        List<TaskResponse> tasks = taskService.getAllTasks();
+        List<TaskResponse> tasks =
+                taskService.getAllTasks();
 
-        if (tasks.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
-
-        return new ResponseEntity<>(tasks, HttpStatus.OK);
+        return new ResponseEntity<>(
+                tasks,
+                HttpStatus.OK
+        );
     }
-
 
     // GET TASK BY ID
     @GetMapping("/{id}")
-    public ResponseEntity<TaskResponse> getTaskById(@PathVariable String id) {
+    public ResponseEntity<TaskResponse> getTaskById(
+            @PathVariable String id) {
 
-        TaskResponse task = taskService.getTaskById(id);
+        TaskResponse task =
+                taskService.getTaskById(id);
 
-        return new ResponseEntity<>(task, HttpStatus.OK);
+        return new ResponseEntity<>(
+                task,
+                HttpStatus.OK
+        );
     }
-
 
     // UPDATE TASK
     @PutMapping("/{id}")
@@ -63,18 +68,24 @@ public class TaskController {
             @PathVariable String id,
             @Valid @RequestBody UpdateTaskRequest request) {
 
-        TaskResponse updatedTask = taskService.updateTask(request, id);
+        TaskResponse updatedTask =
+                taskService.updateTask(request, id);
 
-        return new ResponseEntity<>(updatedTask, HttpStatus.OK);
+        return new ResponseEntity<>(
+                updatedTask,
+                HttpStatus.OK
+        );
     }
-
 
     // DELETE TASK
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteTask(@PathVariable String id) {
+    public ResponseEntity<Void> deleteTask(
+            @PathVariable String id) {
 
         taskService.deleteTask(id);
 
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        return new ResponseEntity<>(
+                HttpStatus.NO_CONTENT
+        );
     }
 }

@@ -4,6 +4,7 @@ import com.teamflow.teamflow_backend.DTO.User.CreateUserRequest;
 import com.teamflow.teamflow_backend.DTO.User.UpdateUserRequest;
 import com.teamflow.teamflow_backend.DTO.User.UserResponse;
 import com.teamflow.teamflow_backend.Entity.User;
+import com.teamflow.teamflow_backend.Exception.ResourceNotFoundException;
 import com.teamflow.teamflow_backend.Repository.UserRepository;
 import org.springframework.stereotype.Service;
 
@@ -54,11 +55,7 @@ public class UserService {
     // READ BY ID
     public UserResponse findById(String id) {
 
-        User user = userRepository.findById(id).orElse(null);
-
-        if (user == null) {
-            return null;
-        }
+        User user = userRepository.findById(id).orElseThrow(()-> new ResourceNotFoundException("User Not found"));
 
         return convertToResponse(user);
     }
@@ -70,11 +67,8 @@ public class UserService {
             UpdateUserRequest request) {
 
         User existingUser =
-                userRepository.findById(id).orElse(null);
+                userRepository.findById(id).orElseThrow(()-> new ResourceNotFoundException("User Not found"));
 
-        if (existingUser == null) {
-            return null;
-        }
 
         // DTO -> Existing Entity
         existingUser.setName(request.getName());
@@ -91,11 +85,12 @@ public class UserService {
     // DELETE
     public void deleteUser(String id) {
 
-        if (userRepository.existsById(id)) {
-            userRepository.deleteById(id);
+        if (!userRepository.existsById(id)) {
+            throw new ResourceNotFoundException("User not found");
         }
-    }
 
+        userRepository.deleteById(id);
+    }
 
     // ENTITY -> RESPONSE DTO
     private UserResponse convertToResponse(User user) {

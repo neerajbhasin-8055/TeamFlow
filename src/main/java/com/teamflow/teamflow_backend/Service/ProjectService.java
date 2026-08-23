@@ -4,6 +4,7 @@ import com.teamflow.teamflow_backend.DTO.Project.CreateProjectRequest;
 import com.teamflow.teamflow_backend.DTO.Project.ProjectResponse;
 import com.teamflow.teamflow_backend.DTO.Project.UpdateProjectRequest;
 import com.teamflow.teamflow_backend.Entity.Project;
+import com.teamflow.teamflow_backend.Exception.ResourceNotFoundException;
 import com.teamflow.teamflow_backend.Repository.ProjectRepository;
 import org.springframework.stereotype.Service;
 
@@ -58,7 +59,7 @@ public class ProjectService {
     public ProjectResponse getProjectById(String id) {
 
         Project project = projectRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Project not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
 
         return convertToResponse(project);
     }
@@ -68,7 +69,7 @@ public class ProjectService {
     public ProjectResponse updateProject(String id, UpdateProjectRequest request) {
 
         Project project = projectRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Project not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
 
         // DTO -> Existing Entity
         project.setName(request.getName());
@@ -92,7 +93,7 @@ public class ProjectService {
     public void deleteProject(String id) {
 
         if (!projectRepository.existsById(id)) {
-            throw new RuntimeException("Project not found");
+            throw new ResourceNotFoundException("Project not found");
         }
 
         projectRepository.deleteById(id);

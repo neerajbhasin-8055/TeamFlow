@@ -4,6 +4,8 @@ import com.teamflow.teamflow_backend.DTO.Task.CreateTaskRequest;
 import com.teamflow.teamflow_backend.DTO.Task.TaskResponse;
 import com.teamflow.teamflow_backend.DTO.Task.UpdateTaskRequest;
 import com.teamflow.teamflow_backend.Entity.Task;
+import com.teamflow.teamflow_backend.Exception.BadRequestException;
+import com.teamflow.teamflow_backend.Exception.ResourceNotFoundException;
 import com.teamflow.teamflow_backend.Repository.ProjectRepository;
 import com.teamflow.teamflow_backend.Repository.TaskRepository;
 import org.springframework.stereotype.Service;
@@ -23,10 +25,10 @@ public class TaskService {
     public TaskResponse createTask(CreateTaskRequest request){
         String projId = request.getProjectId();
         if (projId == null || projId.isBlank()) {
-            throw new RuntimeException("Project ID is required");
+            throw new BadRequestException("Project ID is required");
         }
         if (!projectRepository.existsById(projId)) {
-            throw new RuntimeException("Project not found");
+            throw new ResourceNotFoundException("Project not found");
         }
 
         Task task = new Task();
@@ -46,14 +48,14 @@ public class TaskService {
     public TaskResponse updateTask(UpdateTaskRequest request, String id){
 
         Task task = taskRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Task not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
 
         String projId = request.getProjectId();
         if (projId == null || projId.isBlank()) {
-            throw new RuntimeException("Project ID is required");
+            throw new BadRequestException("Project ID is required");
         }
         if (!projectRepository.existsById(projId)) {
-            throw new RuntimeException("Project not found");
+            throw new ResourceNotFoundException("Project not found");
         }
         task.setTitle(request.getTitle());
         task.setDescription(request.getDescription());
@@ -74,14 +76,14 @@ public class TaskService {
     }
 
     public TaskResponse getTaskById(String id){
-        Task task = taskRepository.findById(id).orElseThrow(()-> new RuntimeException("task not found"));
+        Task task = taskRepository.findById(id).orElseThrow(()-> new ResourceNotFoundException("Task not found"));
         return convertToResponse(task);
     }
 
 
     public void deleteTask(String id){
         if(!taskRepository.existsById(id)){
-            throw new RuntimeException("task not found");
+            throw new ResourceNotFoundException("Task not found");
         }
         taskRepository.deleteById(id);
     }
