@@ -1,24 +1,26 @@
 package com.teamflow.teamflow_backend.Service;
 
+
 import com.teamflow.teamflow_backend.DTO.User.CreateUserRequest;
 import com.teamflow.teamflow_backend.DTO.User.UpdateUserRequest;
 import com.teamflow.teamflow_backend.DTO.User.UserResponse;
+import com.teamflow.teamflow_backend.ENUM.Role;
 import com.teamflow.teamflow_backend.Entity.User;
 import com.teamflow.teamflow_backend.Exception.ResourceNotFoundException;
 import com.teamflow.teamflow_backend.Repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
-
-    public UserService(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
+    private final PasswordEncoder passwordEncoder;
 
     // CREATE
     public UserResponse createUser(CreateUserRequest request) {
@@ -28,10 +30,10 @@ public class UserService {
 
         user.setName(request.getName());
         user.setEmail(request.getEmail());
-        user.setPassword(request.getPassword());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
 
         // Backend-generated fields
-        user.setRole("USER");
+        user.setRole(Role.USER);
         user.setCreatedAt(new Date());
 
         // Save Entity

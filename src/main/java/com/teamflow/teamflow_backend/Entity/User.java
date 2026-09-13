@@ -1,6 +1,7 @@
 package com.teamflow.teamflow_backend.Entity;
 
 
+import com.teamflow.teamflow_backend.ENUM.Role;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -15,6 +16,6 @@ public class User {
     private String name;
     private String email;
     private String password;
-    private String role;
+    private Role role;
     private Date createdAt;
 }
