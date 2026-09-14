@@ -3,8 +3,8 @@ package com.teamflow.teamflow_backend.Controller;
 import com.teamflow.teamflow_backend.DTO.LoginRequest;
 import com.teamflow.teamflow_backend.Service.AuthService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,9 +15,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AuthController {
     private final AuthService authService;
-    @PostMapping("login")
+    @PostMapping("/login")
     public ResponseEntity<String> login(@RequestBody LoginRequest request){
-        authService.login(request);
-        return ResponseEntity.ok("Login Success");
+        String token = authService.login(request);
+        return new ResponseEntity<>(token, HttpStatus.OK);
     }
+
 }
