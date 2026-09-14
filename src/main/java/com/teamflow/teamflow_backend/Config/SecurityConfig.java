@@ -1,5 +1,6 @@
 package com.teamflow.teamflow_backend.Config;
 
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import com.teamflow.teamflow_backend.Security.CustomUserDetailsService;
@@ -39,13 +40,17 @@ public class SecurityConfig {
                         UsernamePasswordAuthenticationFilter.class
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/login").permitAll()
+                        .requestMatchers("/auth/login","/auth/register").permitAll()
+                        .requestMatchers("/api/users/allusers").hasRole("Admin")
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(exception ->
                         exception.authenticationEntryPoint(
                                 new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)
                         )
+                                .accessDeniedHandler((request, response, accessDeniedException) ->
+                                        response.setStatus(HttpServletResponse.SC_FORBIDDEN)
+                                )
                 );
         return http.build();
     }

@@ -23,6 +23,6 @@ public class AuthService {
         );
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         return jwtService.generateToken(userDetails);
-
     }
+
 }
