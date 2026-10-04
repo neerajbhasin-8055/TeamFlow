@@ -19,13 +19,13 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration // tells spring this class contains configuration
-@RequiredArgsConstructor
+@RequiredArgsConstructor // lombok provides this, no need to write contorllers explicitly
 public class SecurityConfig {
     private final CustomUserDetailsService customUserDetailsService;
     private  final JwtAuthenticationFilter jwtAuthenticationFilter;
     @Bean // tells spring Create this object and keep it in the Spring container so other classes can use it
     public PasswordEncoder passwordEncoder(){
-        return new BCryptPasswordEncoder();
+        return new BCryptPasswordEncoder(); // a class that uses Password Encoder interface...
     }
 
     @Bean
@@ -52,12 +52,12 @@ public class SecurityConfig {
                                         response.setStatus(HttpServletResponse.SC_FORBIDDEN)
                                 )
                 );
-        return http.build();
+        return http.build();// This returns a DefaultSecurityFilterChain object
     }
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception{
-        return configuration.getAuthenticationManager();
+        return configuration.getAuthenticationManager(); // AuthenticationConfiguration is the factory that builds and provides the AuthenticationManager
     }
 
 }
