@@ -24,7 +24,8 @@ public class ProjectController {
     // CREATE
     @PostMapping("create")
     public ResponseEntity<ProjectResponse> createProject(
-            @Valid @RequestBody CreateProjectRequest request) {
+           @Valid @RequestBody CreateProjectRequest request) {
+        System.out.println("Project controller reached");
 
         ProjectResponse savedProject =
                 projectService.createProject(request);
@@ -34,6 +35,8 @@ public class ProjectController {
                 HttpStatus.CREATED
         );
     }
+
+
 
     // READ ALL
     @GetMapping("allprojects")
@@ -47,7 +50,11 @@ public class ProjectController {
                 HttpStatus.OK
         );
     }
-
+    @GetMapping("/test")
+    public String test() {
+        System.out.println("🔥 PROJECT TEST CONTROLLER REACHED");
+        return "Project controller works";
+    }
     // READ BY ID
     @GetMapping("id/{id}")
     public ResponseEntity<ProjectResponse> findById(

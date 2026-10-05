@@ -41,7 +41,11 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/login","/auth/register").permitAll()
-                        .requestMatchers("/api/users/allusers").hasRole("Admin")
+                        .requestMatchers("/api/users/allusers").hasRole("ADMIN")
+                        .requestMatchers("/api/projects/create").hasAnyRole("ADMIN","MANAGER")
+
+                        .requestMatchers("/api/projects/update/{id}").hasAnyRole("ADMIN","MANAGER")
+                        .requestMatchers("/api/projects/delete/{id}").hasAnyRole("ADMIN","MANAGER")
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(exception ->

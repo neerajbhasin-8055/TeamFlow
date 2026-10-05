@@ -27,9 +27,9 @@ public class UpdateProjectRequest {
     @NotNull(message = "Deadline is required")
     private Date deadline;
 
-    @NotNull(message = "Manager ID is required")
+
     private String managerId;
 
-    @NotNull(message = "Team ID is required")
+
     private String teamId;
 }
