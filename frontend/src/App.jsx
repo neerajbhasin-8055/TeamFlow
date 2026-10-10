@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 import ProjectCard from './Components/ProjectCard'
 
@@ -37,7 +37,8 @@ function App() {
     setProjectDescription(event.target.value)
   }
 
-  function addProjects() {
+  function addProjects(event) {
+    event.preventDefault()
     if (projectName.trim() === "" || projectDescription.trim() === "") {
       setError("Project fields are required")
       return
@@ -52,6 +53,10 @@ function App() {
     setProjectDescription("")
     setError("")
   }
+
+  useEffect(()=>{
+    document.title = projectName || "Teamflow"
+  },[projectName])
   return (
     <div className="container">
       <div className="card">
@@ -80,22 +85,26 @@ function App() {
         )}
       </div>
       <div>
-        <h3>Add Projects</h3>
-        <input
-          value={projectName}
-          onChange={handleInput}
-        />
+        <form onSubmit={addProjects}>
+          <h3>Add Projects</h3>
+          <input
+            value={projectName}
+            onChange={handleInput}
+          />
 
-        <textarea
-          value={projectDescription}
-          onChange={handleTextArea}
-        />
+          <textarea
+            value={projectDescription}
+            onChange={handleTextArea}
+          />
+          {error && <p>{error}</p>}
+          <button type='submit'>
+
+            Add
+          </button>
+        </form>
+
       </div>
-      {error && <p>{error}</p>}
-      <button onClick={addProjects}>
-        
-        Add
-      </button>
+
     </div>
   )
 }
