@@ -1,9 +1,131 @@
 
 import { useState } from 'react'
 
+
+const AUTH_API = "http://localhost:8081/auth"
 function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isRegister, setIsRegister] = useState(false)
+  const [message, setMessage] = useState("")
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: ""
+  })
+
+  
+async function getErrorMessage(response, fallbackMessage) {
+  const data = await response.json();
+
+  return data.message || fallbackMessage;
+}
+
+
+
+  async function register() {
+    setLoading(true);
+    setMessage("");
+    setError("");
+
+    try {
+      const response = await fetch(`${AUTH_API}/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+
+      
+if (!response.ok) {
+  const errorMessage = await getErrorMessage(
+    response,
+    "Unable to register user"
+  );
+
+  throw new Error(errorMessage);
+}
+
+
+      setMessage("Registration successful! You can now sign in.");
+      setIsRegister(false);
+      setFormData({
+        name: "",
+        email: "",
+        password: "",
+      });
+    } catch (err) {
+      console.log(err)
+      setError(err.message || "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+
+  async function login() {
+    setLoading(true);
+    setMessage("");
+    setError("");
+
+    try {
+      const response = await fetch(`${AUTH_API}/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+
+      
+if (!response.ok) {
+  const errorMessage = await getErrorMessage(
+    response,
+    "Unable to login"
+  );
+
+  throw new Error(errorMessage);
+}
+
+
+      const token = (await response.text()).trim();
+
+      if (!token) {
+        throw new Error("Login succeeded, but no token was returned.");
+      }
+
+      localStorage.setItem("token", token);
+      setMessage("Login successful!");
+
+    } catch (err) {
+      console.log(err)
+      setError(err.message || "Something Went Wrong")
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+
+    if (loading) return;
+
+    if (isRegister) {
+      await register();
+    } else {
+      await login();
+    }
+  }
+
 
   return (
     <main className="min-h-screen bg-white p-3 sm:p-5 lg:p-8">
@@ -134,7 +256,7 @@ function LoginPage() {
 
             <form
               className="space-y-5"
-              onSubmit={(event) => event.preventDefault()}
+              onSubmit={handleSubmit}
             >
               {isRegister && (
                 <div>
@@ -149,6 +271,10 @@ function LoginPage() {
                     name="name"
                     type="text"
                     placeholder="Your full name"
+                    value={formData.name}
+                    onChange={(event) => {
+                      setFormData({ ...formData, name: event.target.value })
+                    }}
                     autoComplete="name"
                     required
                     className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
@@ -169,6 +295,10 @@ function LoginPage() {
                   type="email"
                   placeholder="you@example.com"
                   autoComplete="email"
+                  value={formData.email}
+                  onChange={(event) => {
+                    setFormData({ ...formData, email: event.target.value })
+                  }}
                   required
                   className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
                 />
@@ -201,6 +331,10 @@ function LoginPage() {
                     name="password"
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Enter your password"
+                    value={formData.password}
+                    onChange={(event) => {
+                      setFormData({ ...formData, password: event.target.value })
+                    }}
                     autoComplete={
                       isRegister ? 'new-password' : 'current-password'
                     }
@@ -236,13 +370,27 @@ function LoginPage() {
               )}
 
               <button
-                type="submit"
+                type="submit" disabled={loading}
+
+
                 className="w-full rounded-xl bg-violet-600 px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-violet-200 transition duration-200 hover:-translate-y-0.5 hover:bg-violet-700 hover:shadow-xl active:translate-y-0"
               >
-                {isRegister ? 'Create account' : 'Sign in'}
+                {loading
+                  ? "Please wait..."
+                  : isRegister
+                    ? "Create account"
+                    : "Sign in"}
                 <span className="ml-2" aria-hidden="true">→</span>
               </button>
             </form>
+
+            {message && (
+              <p className="text-sm text-green-600">{message}</p>
+            )}
+
+            {error && (
+              <p className="text-sm text-red-600">{error}</p>
+            )}
 
             <p className="mt-8 text-center text-sm text-slate-500">
               {isRegister
