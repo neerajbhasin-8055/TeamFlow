@@ -2,6 +2,7 @@ package com.teamflow.teamflow_backend.Config;
 
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import com.teamflow.teamflow_backend.Security.CustomUserDetailsService;
 import com.teamflow.teamflow_backend.Security.JwtAuthenticationFilter;
@@ -31,6 +32,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
         http
+                .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)

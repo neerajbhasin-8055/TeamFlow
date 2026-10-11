@@ -8,7 +8,8 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import com.teamflow.teamflow_backend.Security.CustomUserDetails;
+import org.springframework.security.core.Authentication;
 import java.util.List;
 
 @RestController
@@ -85,4 +86,32 @@ public class UserController {
                 HttpStatus.NO_CONTENT
         );
     }
+
+    @GetMapping("/me")
+    public ResponseEntity<UserResponse> getCurrentUser(
+            Authentication authentication) {
+
+        CustomUserDetails currentUser =
+                (CustomUserDetails) authentication.getPrincipal();
+
+        UserResponse user =
+                userService.getCurrentUser(currentUser.getUsername());
+
+        return ResponseEntity.ok(user);
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<UserResponse> updateCurrentUser(
+            Authentication authentication,
+            @Valid @RequestBody UpdateUserRequest request) {
+        CustomUserDetails currentUser =
+                (CustomUserDetails) authentication.getPrincipal();
+
+        UserResponse updatedUser =
+                userService.updateCurrentUser(
+                        currentUser.getUsername(), request);
+
+        return ResponseEntity.ok(updatedUser);
+    }
+
 }

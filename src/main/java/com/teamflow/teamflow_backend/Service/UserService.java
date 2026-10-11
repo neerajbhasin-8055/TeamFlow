@@ -6,6 +6,7 @@ import com.teamflow.teamflow_backend.DTO.User.UpdateUserRequest;
 import com.teamflow.teamflow_backend.DTO.User.UserResponse;
 import com.teamflow.teamflow_backend.ENUM.Role;
 import com.teamflow.teamflow_backend.Entity.User;
+import com.teamflow.teamflow_backend.Exception.DuplicateResourceException;
 import com.teamflow.teamflow_backend.Exception.ResourceNotFoundException;
 import com.teamflow.teamflow_backend.Repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,10 @@ public class UserService {
 
         // DTO -> Entity
         User user = new User();
+
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new DuplicateResourceException("Email is already registered");
+        }
 
         user.setName(request.getName());
         user.setEmail(request.getEmail());
@@ -83,6 +88,38 @@ public class UserService {
         return convertToResponse(updatedUser);
     }
 
+
+    public UserResponse getCurrentUser(String email) {
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("User not found"));
+
+        return convertToResponse(user);
+    }
+
+    public UserResponse updateCurrentUser(
+            String currentEmail,
+            UpdateUserRequest request) {
+
+        User existingUser = userRepository.findByEmail(currentEmail)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("User not found"));
+
+        // Check whether another user already owns the requested email.
+        if (!existingUser.getEmail().equalsIgnoreCase(request.getEmail())
+                && userRepository.existsByEmail(request.getEmail())) {
+            throw new DuplicateResourceException(
+                    "Email is already registered");
+        }
+
+        existingUser.setName(request.getName().trim());
+        existingUser.setEmail(request.getEmail().trim());
+
+        User updatedUser = userRepository.save(existingUser);
+
+        return convertToResponse(updatedUser);
+    }
 
     // DELETE
     public void deleteUser(String id) {
