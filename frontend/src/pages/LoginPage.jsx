@@ -3,7 +3,7 @@ import { useState } from 'react'
 
 
 const AUTH_API = "http://localhost:8081/auth"
-function LoginPage() {
+function LoginPage({onLoginSuccess}) {
   const [showPassword, setShowPassword] = useState(false)
   const [isRegister, setIsRegister] = useState(false)
   const [message, setMessage] = useState("")
@@ -105,6 +105,7 @@ if (!response.ok) {
 
       localStorage.setItem("token", token);
       setMessage("Login successful!");
+      onLoginSuccess(token)
 
     } catch (err) {
       console.log(err)

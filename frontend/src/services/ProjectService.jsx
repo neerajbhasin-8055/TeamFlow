@@ -2,17 +2,24 @@
 const API_URL = "http://localhost:8081/api/projects";
 
 export async function getProjects() {
-    try {
-        const response = await fetch(`${API_URL}/allprojects`);
+  const token = localStorage.getItem("token");
 
-        if (!response.ok) {
-            throw new Error("Failed to fetch all projects");
-        }
+  console.log("Token exists:", Boolean(token));
 
-        const data = await response.json();
+  const response = await fetch(`${API_URL}/allprojects`, {
+    method: "GET",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
 
-        return data;
-    } catch (error) {
-        throw error;
-    }
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(
+      `Failed to fetch projects (${response.status}): ${errorBody}`
+    );
+  }
+
+  return response.json();
 }
