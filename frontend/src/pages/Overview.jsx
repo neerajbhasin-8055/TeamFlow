@@ -53,7 +53,6 @@ function Overview() {
         setProjects,
         loadingProjects,
         projectError,
-        search,
         onViewProjects,
     } = useOutletContext();
 
@@ -72,9 +71,12 @@ function Overview() {
         });
     }
 
-    const filteredProjects = projects.filter((project) =>
-        (project.name || "").toLowerCase().includes(search.toLowerCase())
-    );
+    const [search, setSearch] = useState("");
+   const filteredProjects = projects.filter((project) =>
+    (project.name || "")
+      .toLowerCase()
+      .includes(search.trim().toLowerCase())
+  );
 
     const stats = [
         {

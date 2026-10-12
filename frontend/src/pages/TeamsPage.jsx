@@ -122,15 +122,28 @@ export default function TeamsPage() {
         loadTeams();
     }, [loadTeams]);
 
+    useEffect(() => {
+    console.log("Teams received from API:", teams);
+    console.log("Current search:", search);
+    console.log("Filtered teams:", filteredTeams);
+}, [teams, search]);
+
     const filteredTeams = teams.filter((team) => {
-        const query = search.toLowerCase().trim();
+        const query = search.trim().toLowerCase();
+
+        if (!query) return true;
+
+        const name = String(team.name ?? "").toLowerCase();
+        const description = String(team.description ?? "").toLowerCase();
+        const id = String(team.id ?? "").toLowerCase();
 
         return (
-            !query ||
-            team.name?.toLowerCase().includes(query) ||
-            team.description?.toLowerCase().includes(query)
+            name.includes(query) ||
+            description.includes(query) ||
+            id.includes(query)
         );
     });
+
 
     const myTeams = teams.filter(
         (team) => team.createdBy === currentUserId
@@ -249,41 +262,41 @@ export default function TeamsPage() {
         setDetailsError("");
     }
 
-    
-async function loadManagementOptions() {
-    try {
-        const [usersResult, projectsResult] = await Promise.allSettled([
-            getAllUsers(),
-            getAllProjects(),
-        ]);
 
-        if (usersResult.status === "fulfilled") {
-            const usersData = usersResult.value;
-            console.log("Users API:", usersData);
+    async function loadManagementOptions() {
+        try {
+            const [usersResult, projectsResult] = await Promise.allSettled([
+                getAllUsers(),
+                getAllProjects(),
+            ]);
 
-            setUsers(Array.isArray(usersData) ? usersData : []);
-        } else {
-            console.error("Users API failed:", usersResult.reason);
-            setUsers([]);
+            if (usersResult.status === "fulfilled") {
+                const usersData = usersResult.value;
+                console.log("Users API:", usersData);
+
+                setUsers(Array.isArray(usersData) ? usersData : []);
+            } else {
+                console.error("Users API failed:", usersResult.reason);
+                setUsers([]);
+            }
+
+            if (projectsResult.status === "fulfilled") {
+                const projectsData = projectsResult.value;
+                console.log("Projects API:", projectsData);
+
+                setProjects(
+                    Array.isArray(projectsData) ? projectsData : []
+                );
+            } else {
+                console.error("Projects API failed:", projectsResult.reason);
+                setProjects([]);
+                setDetailsError(getErrorMessage(projectsResult.reason));
+            }
+        } catch (err) {
+            console.error("Management options error:", err);
+            setDetailsError(getErrorMessage(err));
         }
-
-        if (projectsResult.status === "fulfilled") {
-            const projectsData = projectsResult.value;
-            console.log("Projects API:", projectsData);
-
-            setProjects(
-                Array.isArray(projectsData) ? projectsData : []
-            );
-        } else {
-            console.error("Projects API failed:", projectsResult.reason);
-            setProjects([]);
-            setDetailsError(getErrorMessage(projectsResult.reason));
-        }
-    } catch (err) {
-        console.error("Management options error:", err);
-        setDetailsError(getErrorMessage(err));
     }
-}
 
 
     async function handleAddMember() {
@@ -442,10 +455,10 @@ async function loadManagementOptions() {
                         loading
                             ? "—"
                             : teams.reduce(
-                                  (total, team) =>
-                                      total + (team.memberIds?.length || 0),
-                                  0
-                              )
+                                (total, team) =>
+                                    total + (team.memberIds?.length || 0),
+                                0
+                            )
                     }
                     icon="♧"
                     color="emerald"
@@ -464,17 +477,33 @@ async function loadManagementOptions() {
                         </p>
                     </div>
 
+
                     <div className="relative w-full sm:max-w-xs">
                         <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
                             ⌕
                         </span>
+
                         <input
+                            type="search"
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
-                            placeholder="Search teams..."
-                            className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-100"
+                            placeholder="Search teams by name, description or ID..."
+                            aria-label="Search teams"
+                            className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-9 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-100"
                         />
+
+                        {search && (
+                            <button
+                                type="button"
+                                onClick={() => setSearch("")}
+                                aria-label="Clear team search"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-lg text-slate-400 hover:text-slate-700"
+                            >
+                                ×
+                            </button>
+                        )}
                     </div>
+
                 </div>
 
                 {loading ? (
@@ -530,11 +559,10 @@ async function loadManagementOptions() {
                                         </div>
 
                                         <span
-                                            className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                                                isCreator
+                                            className={`rounded-full px-2.5 py-1 text-xs font-medium ${isCreator
                                                     ? "bg-violet-50 text-violet-700"
                                                     : "bg-slate-100 text-slate-600"
-                                            }`}
+                                                }`}
                                         >
                                             {isCreator ? "Created by you" : "Team"}
                                         </span>
@@ -675,8 +703,8 @@ async function loadManagementOptions() {
                                 {saving
                                     ? "Saving..."
                                     : editingTeam
-                                      ? "Save changes"
-                                      : "Create team"}
+                                        ? "Save changes"
+                                        : "Create team"}
                             </button>
                         </div>
                     </form>
@@ -999,9 +1027,8 @@ function Modal({ title, subtitle, onClose, children, wide = false }) {
                 role="dialog"
                 aria-modal="true"
                 aria-label={title}
-                className={`my-auto w-full ${
-                    wide ? "max-w-3xl" : "max-w-lg"
-                } rounded-2xl border border-slate-200 bg-white shadow-2xl`}
+                className={`my-auto w-full ${wide ? "max-w-3xl" : "max-w-lg"
+                    } rounded-2xl border border-slate-200 bg-white shadow-2xl`}
             >
                 <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-5 sm:px-6">
                     <div className="min-w-0">
@@ -1024,9 +1051,8 @@ function Modal({ title, subtitle, onClose, children, wide = false }) {
                 </div>
 
                 <div
-                    className={`px-5 py-5 sm:px-6 ${
-                        wide ? "max-h-[70vh] overflow-y-auto" : ""
-                    }`}
+                    className={`px-5 py-5 sm:px-6 ${wide ? "max-h-[70vh] overflow-y-auto" : ""
+                        }`}
                 >
                     {children}
                 </div>
