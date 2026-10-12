@@ -2,14 +2,13 @@
 import { useEffect, useState } from "react";
 import { getProjects } from "../services/ProjectService";
 import Profile from "./Profile";
-import Overview from "./Overview";
-import ProjectPage from "./ProjectPage";
+import { useNavigate, Outlet, useLocation } from "react-router-dom";
 
 const navigation = [
-    { label: "Overview", icon: "⌂" },
-    { label: "Projects", icon: "▤" },
-    { label: "My Tasks", icon: "✓" },
-    { label: "Teams", icon: "♧" },
+    { label: "Overview", icon: "⌂", path: "/dashboard" },
+    { label: "Projects", icon: "▤", path: "/projects" },
+    { label: "My Tasks", icon: "✓", path: "/tasks" },
+    { label: "Teams", icon: "♧", path: "/teams" },
 ];
 
 function getInitials(name) {
@@ -25,7 +24,28 @@ function getInitials(name) {
 }
 
 function Dashboard({ onLogout }) {
-    const [activePage, setActivePage] = useState("Overview");
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    const isProfilePage = location.pathname === "/profile";
+    const isProjectDetailsPage =
+        /^\/projects\/[^/]+$/.test(location.pathname);
+
+    const activePage =
+        location.pathname === "/dashboard"
+            ? "Overview"
+            : location.pathname === "/projects"
+                ? "Projects"
+                : location.pathname === "/tasks"
+                    ? "My Tasks"
+                    : location.pathname === "/teams"
+                        ? "Teams"
+                        : location.pathname === "/settings"
+                            ? "Settings"
+                            : isProfilePage
+                                ? "Profile"
+                                : "Overview";
+
     const [search, setSearch] = useState("");
 
     const [projects, setProjects] = useState([]);
@@ -36,7 +56,7 @@ function Dashboard({ onLogout }) {
     const [userError, setUserError] = useState("");
 
     function handleProfileClick() {
-        setActivePage("Profile");
+        navigate("/profile");
     }
 
     useEffect(() => {
@@ -62,7 +82,7 @@ function Dashboard({ onLogout }) {
                 if (!cancelled) {
                     setProjectError(
                         error.message ||
-                            "Unable to load projects. Please try again."
+                        "Unable to load projects. Please try again."
                     );
                 }
             } finally {
@@ -130,6 +150,18 @@ function Dashboard({ onLogout }) {
         };
     }, []);
 
+    const outletContext = {
+  projects,
+  setProjects,
+  loadingProjects,
+  projectError,
+  search,
+  currentUser,
+  setCurrentUser,
+  onLogout,
+  onViewProjects: () => navigate("/projects"),
+};
+
     return (
         <div className="min-h-screen bg-[#f7f8fc] text-slate-800">
             <div className="flex min-h-screen">
@@ -153,12 +185,11 @@ function Dashboard({ onLogout }) {
                         {navigation.map((item) => (
                             <button
                                 key={item.label}
-                                onClick={() => setActivePage(item.label)}
-                                className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium transition ${
-                                    activePage === item.label
-                                        ? "bg-violet-50 text-violet-700"
-                                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
-                                }`}
+                                onClick={() => navigate(item.path)}
+                                className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium transition ${activePage === item.label
+                                    ? "bg-violet-50 text-violet-700"
+                                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                                    }`}
                             >
                                 <span className="w-6 text-center text-lg">
                                     {item.icon}
@@ -174,12 +205,11 @@ function Dashboard({ onLogout }) {
                         </p>
 
                         <button
-                            onClick={() => setActivePage("Settings")}
-                            className={`w-full rounded-xl px-3 py-3 text-left text-sm font-medium transition ${
-                                activePage === "Settings"
-                                    ? "bg-violet-50 text-violet-700"
-                                    : "text-slate-500 hover:bg-slate-50"
-                            }`}
+                            onClick={() => navigate("/settings")}
+                            className={`w-full rounded-xl px-3 py-3 text-left text-sm font-medium transition ${activePage === "Settings"
+                                ? "bg-violet-50 text-violet-700"
+                                : "text-slate-500 hover:bg-slate-50"
+                                }`}
                         >
                             ⚙️ <span className="ml-3">Settings</span>
                         </button>
@@ -236,7 +266,7 @@ function Dashboard({ onLogout }) {
 
                 {/* Main content */}
                 <main className="min-w-0 flex-1 px-4 py-5 sm:px-7 sm:py-8 lg:px-10">
-                    {activePage === "Profile" ? (
+                    {isProfilePage ? (
                         <>
                             <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
                                 <div>
@@ -250,7 +280,7 @@ function Dashboard({ onLogout }) {
                                 </div>
 
                                 <button
-                                    onClick={() => setActivePage("Overview")}
+                                    onClick={() => navigate("/dashboard")}
                                     className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-violet-200 hover:text-violet-700"
                                 >
                                     ← Back to Dashboard
@@ -268,32 +298,48 @@ function Dashboard({ onLogout }) {
                             {/* Shared top bar */}
                             <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
                                 <div>
-                                    <p className="text-sm text-slate-400">
-                                        Workspace / {activePage}
-                                    </p>
+                                    {!isProjectDetailsPage ? (
+                                        <>
+                                            <p className="text-sm text-slate-400">
+                                                Workspace / {activePage}
+                                            </p>
 
-                                    <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-                                        {activePage === "Overview"
-                                            ? "Dashboard"
-                                            : activePage}
-                                    </h1>
+                                            <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                                                {activePage === "Overview"
+                                                    ? "Dashboard"
+                                                    : activePage}
+                                            </h1>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <p className="text-sm text-slate-400">
+                                                Workspace / Projects / Project Details
+                                            </p>
+
+                                            <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                                                Project Details
+                                            </h1>
+                                        </>
+                                    )}
                                 </div>
 
                                 <div className="flex items-center gap-3">
-                                    <label className="relative hidden sm:block">
-                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                                            ⌕
-                                        </span>
+                                    {!isProjectDetailsPage && (
+                                        <label className="relative hidden sm:block">
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                                                ⌕
+                                            </span>
 
-                                        <input
-                                            value={search}
-                                            onChange={(event) =>
-                                                setSearch(event.target.value)
-                                            }
-                                            placeholder="Search projects..."
-                                            className="w-48 rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100 lg:w-64"
-                                        />
-                                    </label>
+                                            <input
+                                                value={search}
+                                                onChange={(event) =>
+                                                    setSearch(event.target.value)
+                                                }
+                                                placeholder="Search projects..."
+                                                className="w-48 rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100 lg:w-64"
+                                            />
+                                        </label>
+                                    )}
 
                                     <button
                                         aria-label="Notifications"
@@ -304,41 +350,8 @@ function Dashboard({ onLogout }) {
                                 </div>
                             </header>
 
-                            {/* Separate page components */}
-                            {activePage === "Overview" && (
-                                <Overview
-                                    projects={projects}
-                                    loadingProjects={loadingProjects}
-                                    projectError={projectError}
-                                    search={search}
-                                    onViewProjects={() =>
-                                        setActivePage("Projects")
-                                    }
-                                />
-                            )}
-
-                            {activePage === "Projects" && (
-                                <ProjectPage
-                                    projects={projects}
-                                    loadingProjects={loadingProjects}
-                                    projectError={projectError}
-                                    search={search}
-                                />
-                            )}
-
-                            {["My Tasks", "Teams", "Settings"].includes(
-                                activePage
-                            ) && (
-                                <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
-                                    <h2 className="font-semibold text-slate-900">
-                                        {activePage}
-                                    </h2>
-
-                                    <p className="mt-2 text-sm text-slate-500">
-                                        This page has not been implemented yet.
-                                    </p>
-                                </div>
-                            )}
+                            {/* React Router renders the selected child page here */}
+                            <Outlet context={outletContext} />
                         </>
                     )}
                 </main>

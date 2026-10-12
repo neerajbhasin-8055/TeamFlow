@@ -50,11 +50,6 @@ public class ProjectController {
                 HttpStatus.OK
         );
     }
-    @GetMapping("/test")
-    public String test() {
-        System.out.println("🔥 PROJECT TEST CONTROLLER REACHED");
-        return "Project controller works";
-    }
     // READ BY ID
     @GetMapping("id/{id}")
     public ResponseEntity<ProjectResponse> findById(

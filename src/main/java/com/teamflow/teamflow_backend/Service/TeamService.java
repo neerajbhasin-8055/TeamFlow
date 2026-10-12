@@ -375,6 +375,8 @@ public class TeamService {
     private void checkManagerOrAdmin() {
 
         User currentUser = getCurrentUser();
+        System.out.println("Current user: " + currentUser.getEmail());
+        System.out.println("Current role: " + currentUser.getRole());
 
         switch (currentUser.getRole()) {
 

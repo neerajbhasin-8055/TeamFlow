@@ -1,22 +1,15 @@
-import { useState } from "react";
-import Dashboard from "./pages/Dashboard"
-import LoginPage from "./pages/LoginPage"
 
-function App(){
-  const[token,setToken] = useState(
-    () => localStorage.getItem("token")
-  )
+import { BrowserRouter } from "react-router-dom";
+import AppRoutes from "./Routes/AppRoutes";
 
-  function handleLoginSuccess(newToken){
-    setToken(newToken)
-  }
 
-  function handleLogout(){
-    localStorage.removeItem("token")
-    setToken(null)
-  }
-  return token ? (
-    <Dashboard onLogout={handleLogout}/> 
-  ) : (<LoginPage onLoginSuccess={handleLoginSuccess}/>)
+
+function App() {
+
+  return <BrowserRouter>
+    <AppRoutes />
+
+
+  </BrowserRouter>
 }
 export default App

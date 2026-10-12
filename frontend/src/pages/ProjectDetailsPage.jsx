@@ -1,363 +1,766 @@
 
-function ProjectDetailsPage({ project }) {
-    // UI-only demo data. Replace with real project data later.
-    const members = [
-        { name: "Aarav Sharma", role: "Project Manager", initials: "AS", color: "bg-violet-100 text-violet-700" },
-        { name: "Priya Verma", role: "Frontend Developer", initials: "PV", color: "bg-pink-100 text-pink-700" },
-        { name: "Rahul Mehta", role: "Backend Developer", initials: "RM", color: "bg-blue-100 text-blue-700" },
-        { name: "Sneha Reddy", role: "QA Engineer", initials: "SR", color: "bg-emerald-100 text-emerald-700" },
-    ];
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import {
+  getProjectById,
+  updateProject,
+  deleteProject,
+} from "../services/ProjectService";
 
-    const tasks = [
-        { title: "Design project dashboard", assignee: "Priya Verma", status: "COMPLETED", priority: "HIGH", due: "Oct 12" },
-        { title: "Implement authentication API", assignee: "Rahul Mehta", status: "IN_PROGRESS", priority: "HIGH", due: "Oct 15" },
-        { title: "Write integration tests", assignee: "Sneha Reddy", status: "TODO", priority: "MEDIUM", due: "Oct 18" },
-        { title: "Review project requirements", assignee: "Aarav Sharma", status: "COMPLETED", priority: "LOW", due: "Oct 10" },
-    ];
+const API_URL = "http://localhost:8081/api/users";
+const API_USERS_URL = `${API_URL}/me`;
+const MANAGERS_API_URL = `${API_URL}/allusers`;
 
-    const activities = [
-        { initials: "PV", color: "bg-pink-100 text-pink-700", text: "Priya Verma completed", item: "Design project dashboard", time: "2 hours ago" },
-        { initials: "RM", color: "bg-blue-100 text-blue-700", text: "Rahul Mehta updated", item: "Authentication API", time: "5 hours ago" },
-        { initials: "AS", color: "bg-violet-100 text-violet-700", text: "Aarav Sharma created", item: "Project requirements", time: "Yesterday" },
-    ];
+const initialForm = {
+  name: "",
+  description: "",
+  status: "TODO",
+  startDate: "",
+  deadline: "",
+  managerId: "",
+};
 
-    const statusStyles = {
-        COMPLETED: "bg-emerald-50 text-emerald-700",
-        IN_PROGRESS: "bg-blue-50 text-blue-700",
-        TODO: "bg-amber-50 text-amber-700",
+function dateInputValue(value) {
+  if (!value) return "";
+  return String(value).slice(0, 10);
+}
+
+function formatDate(value) {
+  if (!value) return "Not set";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Invalid date";
+
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(date);
+}
+
+function DetailItem({ label, value, mono = false }) {
+  return (
+    <div className="min-w-0 rounded-xl border border-slate-100 bg-slate-50 p-4">
+      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+        {label}
+      </p>
+      <p
+        className={`mt-2 break-words text-sm font-semibold text-slate-800 ${
+          mono ? "font-mono text-xs" : ""
+        }`}
+      >
+        {value ?? "Not assigned"}
+      </p>
+    </div>
+  );
+}
+
+function ProjectDetailsPage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+
+  const [project, setProject] = useState(null);
+  const [role, setRole] = useState("");
+  const [managers, setManagers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingRole, setLoadingRole] = useState(true);
+  const [loadingManagers, setLoadingManagers] = useState(false);
+  const [error, setError] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState(initialForm);
+  const [confirmAction, setConfirmAction] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadProject() {
+      try {
+        setLoading(true);
+        setError("");
+
+        const data = await getProjectById(id);
+
+        if (!cancelled) setProject(data);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err.message || "Unable to load project.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    async function loadRole() {
+      try {
+        const token = localStorage.getItem("token");
+
+        if (!token) throw new Error("Please log in again.");
+
+        const response = await fetch(API_USERS_URL, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!response.ok) {
+          throw new Error("Unable to load user role.");
+        }
+
+        const data = await response.json();
+
+        if (!cancelled) setRole(data.role || "");
+      } catch (err) {
+        if (!cancelled) console.error("Role loading failed:", err);
+      } finally {
+        if (!cancelled) setLoadingRole(false);
+      }
+    }
+
+    if (id) {
+      loadProject();
+    } else {
+      setError("Project ID is missing.");
+      setLoading(false);
+    }
+
+    loadRole();
+
+    return () => {
+      cancelled = true;
     };
+  }, [id]);
 
-    const priorityStyles = {
-        HIGH: "text-red-600 bg-red-50",
-        MEDIUM: "text-amber-700 bg-amber-50",
-        LOW: "text-slate-600 bg-slate-100",
+  // Fetch manager options only for ADMIN users.
+  useEffect(() => {
+    if (role !== "ADMIN") return;
+
+    let cancelled = false;
+
+    async function loadManagers() {
+      try {
+        setLoadingManagers(true);
+
+        const token = localStorage.getItem("token");
+
+        const response = await fetch(MANAGERS_API_URL, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            "Unable to load managers. Check your users-list API endpoint."
+          );
+        }
+
+        const data = await response.json();
+
+        // Supports either a direct array or common wrapped responses.
+        const users = Array.isArray(data)
+          ? data
+          : Array.isArray(data.users)
+            ? data.users
+            : Array.isArray(data.content)
+              ? data.content
+              : [];
+
+        const managerUsers = users.filter(
+          (user) => user.role === "MANAGER"
+        );
+
+        if (!cancelled) setManagers(managerUsers);
+      } catch (err) {
+        if (!cancelled) {
+          setActionError(err.message || "Unable to load managers.");
+        }
+      } finally {
+        if (!cancelled) setLoadingManagers(false);
+      }
+    }
+
+    loadManagers();
+
+    return () => {
+      cancelled = true;
     };
+  }, [role]);
 
+  const canManage = role === "ADMIN" || role === "MANAGER";
+
+
+  
+function getErrorMessage(error) {
+  const message = error?.message || "Something went wrong.";
+
+  try {
+    const jsonStart = message.indexOf("{");
+
+    if (jsonStart !== -1) {
+      const data = JSON.parse(message.slice(jsonStart));
+      return data.message || message;
+    }
+  } catch {
+    // Keep the original message if parsing fails.
+  }
+
+  return message;
+}
+
+  function startEditing() {
+    setForm({
+      name: project.name || "",
+      description: project.description || "",
+      status: project.status || "TODO",
+      startDate: dateInputValue(project.startDate),
+      deadline: dateInputValue(project.deadline),
+      managerId: project.managerId || "",
+    });
+
+    setActionError("");
+    setEditing(true);
+  }
+
+  function handleChange(event) {
+    const { name, value } = event.target;
+
+    setForm((previous) => ({
+      ...previous,
+      [name]: value,
+    }));
+  }
+
+  function requestUpdate(event) {
+    event.preventDefault();
+    setActionError("");
+
+    if (!form.name.trim() || form.name.trim().length < 3) {
+      setActionError("Project name must contain at least 3 characters.");
+      return;
+    }
+
+    if (
+      !form.description.trim() ||
+      form.description.trim().length < 10
+    ) {
+      setActionError("Description must contain at least 10 characters.");
+      return;
+    }
+
+    if (!form.startDate || !form.deadline) {
+      setActionError("Start date and deadline are required.");
+      return;
+    }
+
+    if (form.deadline < form.startDate) {
+      setActionError("Deadline cannot be before the start date.");
+      return;
+    }
+
+    if (
+      role === "ADMIN" &&
+      !form.managerId.trim()
+    ) {
+      setActionError("Please select a project manager.");
+      return;
+    }
+
+    setConfirmAction("update");
+  }
+
+  async function handleConfirm() {
+    const action = confirmAction;
+    setConfirmAction("");
+    setActionError("");
+
+    if (!project) return;
+
+    try {
+      setSaving(true);
+
+      if (action === "update") {
+        const payload = {
+          name: form.name.trim(),
+          description: form.description.trim(),
+          status: form.status,
+          startDate: form.startDate,
+          deadline: form.deadline,
+          teamId: project.teamId || null,
+        };
+
+        // Only ADMIN is allowed to change the manager.
+        if (role === "ADMIN") {
+          payload.managerId = form.managerId;
+        }
+
+        const updated = await updateProject(id, payload);
+
+        setProject(
+          updated && updated.id
+            ? updated
+            : {
+                ...project,
+                ...payload,
+              }
+        );
+
+        setEditing(false);
+      }
+
+      if (action === "delete") {
+        await deleteProject(id);
+        navigate("/projects", { replace: true });
+      }
+    } catch (err) {
+      setActionError(getErrorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const statusStyles = {
+    TODO: "bg-amber-50 text-amber-700 ring-amber-200",
+    PLANNED: "bg-amber-50 text-amber-700 ring-amber-200",
+    IN_PROGRESS: "bg-blue-50 text-blue-700 ring-blue-200",
+    COMPLETED: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+    ON_HOLD: "bg-slate-100 text-slate-700 ring-slate-200",
+    CANCELLED: "bg-red-50 text-red-700 ring-red-200",
+  };
+
+  if (loading) {
     return (
-        <div className="min-h-screen bg-[#f7f8fc] text-slate-800">
-            <div className="mx-auto max-w-7xl space-y-7">
-
-                {/* Breadcrumb and actions */}
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                    <div>
-                        <p className="text-sm text-slate-400">
-                            Workspace / Projects / Project Details
-                        </p>
-                        <p className="mt-1 text-xs text-slate-400">
-                            Project ID: {project?.id ?? "PRJ-001"}
-                        </p>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                        <button
-                            type="button"
-                            className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-violet-300 hover:text-violet-700"
-                        >
-                            ✎ Edit Project
-                        </button>
-
-                        <button
-                            type="button"
-                            className="rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700"
-                        >
-                            + Add Task
-                        </button>
-                    </div>
-                </div>
-
-                {/* Project hero */}
-                <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-violet-600 via-violet-600 to-indigo-600 p-6 text-white shadow-xl shadow-violet-200/50 sm:p-9">
-                    <div className="absolute -right-12 -top-16 h-64 w-64 rounded-full bg-white/10 blur-2xl" />
-
-                    <div className="relative">
-                        <div className="flex flex-wrap items-center gap-3">
-                            <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/20 bg-white/15 text-2xl font-bold">
-                                {(project?.name || "P").charAt(0).toUpperCase()}
-                            </span>
-
-                            <div className="min-w-0 flex-1">
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <h1 className="text-2xl font-bold sm:text-3xl">
-                                        {project?.name || "Website Redesign"}
-                                    </h1>
-
-                                    <span className="rounded-full border border-white/20 bg-white/15 px-3 py-1 text-xs font-medium">
-                                        {project?.status || "IN_PROGRESS"}
-                                    </span>
-                                </div>
-
-                                <p className="mt-2 max-w-2xl text-sm leading-6 text-violet-100">
-                                    {project?.description ||
-                                        "A central place to manage the project, coordinate your team, and track delivery."}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="mt-8 grid grid-cols-2 gap-5 border-t border-white/20 pt-6 sm:grid-cols-4">
-                            <div>
-                                <p className="text-sm text-violet-200">Project Manager</p>
-                                <p className="mt-1 font-semibold">Aarav Sharma</p>
-                            </div>
-
-                            <div>
-                                <p className="text-sm text-violet-200">Start Date</p>
-                                <p className="mt-1 font-semibold">Oct 01, 2026</p>
-                            </div>
-
-                            <div>
-                                <p className="text-sm text-violet-200">Deadline</p>
-                                <p className="mt-1 font-semibold">
-                                    {project?.deadline || "Oct 30, 2026"}
-                                </p>
-                            </div>
-
-                            <div>
-                                <p className="text-sm text-violet-200">Team Members</p>
-                                <p className="mt-1 font-semibold">{members.length} members</p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                {/* KPI cards */}
-                <section className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-                    {[
-                        { label: "Total Tasks", value: "24", note: "Across this project", icon: "▤", style: "bg-violet-50 text-violet-700" },
-                        { label: "Completed", value: "12", note: "50% of all tasks", icon: "✓", style: "bg-emerald-50 text-emerald-700" },
-                        { label: "In Progress", value: "7", note: "Currently being worked on", icon: "↗", style: "bg-blue-50 text-blue-700" },
-                        { label: "To Do", value: "5", note: "Waiting to be started", icon: "◷", style: "bg-amber-50 text-amber-700" },
-                    ].map((stat) => (
-                        <div
-                            key={stat.label}
-                            className="rounded-2xl border border-slate-200/80 bg-white p-5 transition hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-200/60"
-                        >
-                            <div className="flex items-center justify-between gap-2">
-                                <p className="text-sm text-slate-500">{stat.label}</p>
-                                <span className={`flex h-10 w-10 items-center justify-center rounded-xl text-lg ${stat.style}`}>
-                                    {stat.icon}
-                                </span>
-                            </div>
-
-                            <p className="mt-4 text-3xl font-bold text-slate-900">
-                                {stat.value}
-                            </p>
-
-                            <p className="mt-1 text-xs text-slate-400">{stat.note}</p>
-                        </div>
-                    ))}
-                </section>
-
-                {/* Progress and team */}
-                <section className="grid gap-6 lg:grid-cols-3">
-
-                    {/* Project progress */}
-                    <div className="rounded-2xl border border-slate-200/80 bg-white p-6 lg:col-span-1">
-                        <div className="flex items-center justify-between">
-                            <h2 className="font-semibold text-slate-900">
-                                Project Progress
-                            </h2>
-                            <span className="rounded-lg bg-violet-50 px-2.5 py-1 text-sm font-bold text-violet-700">
-                                50%
-                            </span>
-                        </div>
-
-                        <div className="mt-6 h-3 overflow-hidden rounded-full bg-slate-100">
-                            <div className="h-full w-1/2 rounded-full bg-gradient-to-r from-violet-600 to-indigo-500" />
-                        </div>
-
-                        <p className="mt-3 text-sm text-slate-500">
-                            12 of 24 tasks completed
-                        </p>
-
-                        <div className="mt-7 space-y-5">
-                            {[
-                                { label: "Completed", value: "12 tasks", width: "50%", color: "bg-emerald-500" },
-                                { label: "In Progress", value: "7 tasks", width: "29%", color: "bg-blue-500" },
-                                { label: "To Do", value: "5 tasks", width: "21%", color: "bg-amber-400" },
-                            ].map((item) => (
-                                <div key={item.label}>
-                                    <div className="mb-2 flex justify-between text-sm">
-                                        <span className="text-slate-600">{item.label}</span>
-                                        <span className="font-medium text-slate-800">{item.value}</span>
-                                    </div>
-                                    <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                                        <div className={`h-full rounded-full ${item.color}`} style={{ width: item.width }} />
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Team members */}
-                    <div className="rounded-2xl border border-slate-200/80 bg-white p-6 lg:col-span-2">
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                            <div>
-                                <h2 className="font-semibold text-slate-900">
-                                    Project Team
-                                </h2>
-                                <p className="mt-1 text-sm text-slate-500">
-                                    People collaborating on this project
-                                </p>
-                            </div>
-
-                            <button
-                                type="button"
-                                className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-violet-200 hover:text-violet-700"
-                            >
-                                + Add Member
-                            </button>
-                        </div>
-
-                        <div className="mt-5 divide-y divide-slate-100">
-                            {members.map((member, index) => (
-                                <div
-                                    key={member.name}
-                                    className="flex items-center gap-3 py-4"
-                                >
-                                    <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold ${member.color}`}>
-                                        {member.initials}
-                                    </div>
-
-                                    <div className="min-w-0 flex-1">
-                                        <p className="truncate text-sm font-semibold text-slate-800">
-                                            {member.name}
-                                        </p>
-                                        <p className="mt-1 text-xs text-slate-500">
-                                            {member.role}
-                                        </p>
-                                    </div>
-
-                                    <div className="hidden text-right sm:block">
-                                        <p className="text-sm font-semibold text-slate-700">
-                                            {[6, 8, 5, 4][index]} tasks
-                                        </p>
-                                        <p className="mt-1 text-xs text-slate-400">
-                                            Assigned
-                                        </p>
-                                    </div>
-
-                                    <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
-                                        Active
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </section>
-
-                {/* Tasks table */}
-                <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white">
-                    <div className="flex flex-wrap items-center justify-between gap-3 p-6">
-                        <div>
-                            <h2 className="font-semibold text-slate-900">
-                                Project Tasks
-                            </h2>
-                            <p className="mt-1 text-sm text-slate-500">
-                                Review tasks, owners, priorities, and deadlines
-                            </p>
-                        </div>
-
-                        <button
-                            type="button"
-                            className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:border-violet-200 hover:text-violet-700"
-                        >
-                            View All Tasks →
-                        </button>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                        <table className="w-full min-w-[650px] text-left">
-                            <thead className="border-y border-slate-100 bg-slate-50">
-                                <tr className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                                    <th className="px-6 py-4">Task</th>
-                                    <th className="px-6 py-4">Assignee</th>
-                                    <th className="px-6 py-4">Priority</th>
-                                    <th className="px-6 py-4">Status</th>
-                                    <th className="px-6 py-4">Due Date</th>
-                                </tr>
-                            </thead>
-
-                            <tbody className="divide-y divide-slate-100">
-                                {tasks.map((task) => (
-                                    <tr key={task.title} className="transition hover:bg-slate-50/70">
-                                        <td className="px-6 py-4">
-                                            <p className="text-sm font-semibold text-slate-800">
-                                                {task.title}
-                                            </p>
-                                        </td>
-
-                                        <td className="px-6 py-4 text-sm text-slate-600">
-                                            {task.assignee}
-                                        </td>
-
-                                        <td className="px-6 py-4">
-                                            <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${priorityStyles[task.priority]}`}>
-                                                {task.priority}
-                                            </span>
-                                        </td>
-
-                                        <td className="px-6 py-4">
-                                            <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusStyles[task.status]}`}>
-                                                {task.status.replace("_", " ")}
-                                            </span>
-                                        </td>
-
-                                        <td className="px-6 py-4 text-sm text-slate-500">
-                                            {task.due}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div className="border-t border-slate-100 px-6 py-4 text-xs text-slate-400">
-                        Showing sample tasks for UI preview
-                    </div>
-                </section>
-
-                {/* Recent activity */}
-                <section className="rounded-2xl border border-slate-200/80 bg-white p-6">
-                    <div>
-                        <h2 className="font-semibold text-slate-900">
-                            Recent Activity
-                        </h2>
-                        <p className="mt-1 text-sm text-slate-500">
-                            A timeline of recent project updates
-                        </p>
-                    </div>
-
-                    <div className="mt-6 space-y-6">
-                        {activities.map((activity) => (
-                            <div key={activity.item} className="flex gap-3">
-                                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold ${activity.color}`}>
-                                    {activity.initials}
-                                </div>
-
-                                <div className="min-w-0 flex-1">
-                                    <p className="text-sm text-slate-700">
-                                        {activity.text}{" "}
-                                        <span className="font-semibold text-slate-900">
-                                            {activity.item}
-                                        </span>
-                                    </p>
-                                    <p className="mt-1 text-xs text-slate-400">
-                                        {activity.time}
-                                    </p>
-                                </div>
-
-                                <span className="text-slate-300">•</span>
-                            </div>
-                        ))}
-                    </div>
-                </section>
-
-                <footer className="pb-6 text-center text-xs text-slate-400">
-                    TeamFlow · Make teamwork flow.
-                </footer>
-            </div>
-        </div>
+      <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center">
+        <p className="text-sm text-slate-500">
+          Loading project details...
+        </p>
+      </div>
     );
+  }
+
+  if (error || !project) {
+    return (
+      <div className="rounded-2xl border border-red-100 bg-white p-8 text-center">
+        <h2 className="text-lg font-semibold text-slate-900">
+          Could not load project
+        </h2>
+        <p className="mt-2 text-sm text-red-600">
+          {error || "Project not found."}
+        </p>
+        <button
+          type="button"
+          onClick={() => navigate("/projects")}
+          className="mt-5 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white"
+        >
+          Back to Projects
+        </button>
+      </div>
+    );
+  }
+
+  const status = project.status || "UNKNOWN";
+
+  return (
+    <div className="mx-auto max-w-7xl space-y-6 pb-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-sm text-slate-400">
+            Workspace / Projects / {project.name}
+          </p>
+
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <h2 className="break-words text-2xl font-bold text-slate-900 sm:text-3xl">
+              {project.name}
+            </h2>
+
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-semibold ring-1 ${
+                statusStyles[status] ||
+                "bg-slate-100 text-slate-700 ring-slate-200"
+              }`}
+            >
+              {status.replaceAll("_", " ")}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {!loadingRole && canManage && (
+            <>
+              <button
+                type="button"
+                onClick={startEditing}
+                disabled={saving}
+                className="rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-50"
+              >
+                Edit Project
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setActionError("");
+                  setConfirmAction("delete");
+                }}
+                disabled={saving}
+                className="rounded-xl border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
+              >
+                Delete Project
+              </button>
+            </>
+          )}
+
+          <button
+            type="button"
+            onClick={() => navigate("/projects")}
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 hover:border-violet-300 hover:text-violet-700"
+          >
+            ← Back
+          </button>
+        </div>
+      </div>
+
+      {actionError && !editing && (
+        <p
+          role="alert"
+          className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+        >
+          {actionError}
+        </p>
+      )}
+
+      {editing && (
+        <section className="rounded-2xl border border-violet-200 bg-white p-5 sm:p-7">
+          <h3 className="text-lg font-semibold text-slate-900">
+            Edit project
+          </h3>
+
+          <p className="mt-1 text-sm text-slate-500">
+            Change the details and review them before saving.
+          </p>
+
+          <form onSubmit={requestUpdate} className="mt-6 space-y-4">
+            <div>
+              <label
+                htmlFor="edit-name"
+                className="mb-1 block text-sm font-medium text-slate-700"
+              >
+                Project name
+              </label>
+              <input
+                id="edit-name"
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                required
+                minLength={3}
+                maxLength={100}
+                className="w-full rounded-xl border border-slate-300 px-3 py-2.5"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="edit-description"
+                className="mb-1 block text-sm font-medium text-slate-700"
+              >
+                Description
+              </label>
+              <textarea
+                id="edit-description"
+                name="description"
+                value={form.description}
+                onChange={handleChange}
+                required
+                minLength={10}
+                maxLength={500}
+                rows={4}
+                className="w-full rounded-xl border border-slate-300 px-3 py-2.5"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="edit-status"
+                className="mb-1 block text-sm font-medium text-slate-700"
+              >
+                Status
+              </label>
+              <select
+                id="edit-status"
+                name="status"
+                value={form.status}
+                onChange={handleChange}
+                required
+                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5"
+              >
+                <option value="TODO">To do</option>
+                <option value="PLANNED">Planned</option>
+                <option value="IN_PROGRESS">In progress</option>
+                <option value="ON_HOLD">On hold</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="CANCELLED">Cancelled</option>
+              </select>
+            </div>
+
+            {/* Only ADMIN can assign or change the manager. */}
+            {role === "ADMIN" && (
+              <div>
+                <label
+                  htmlFor="edit-manager"
+                  className="mb-1 block text-sm font-medium text-slate-700"
+                >
+                  Project manager
+                </label>
+
+                <select
+                  id="edit-manager"
+                  name="managerId"
+                  value={form.managerId}
+                  onChange={handleChange}
+                  required
+                  disabled={loadingManagers}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 disabled:bg-slate-100"
+                >
+                  <option value="">
+                    {loadingManagers
+                      ? "Loading managers..."
+                      : "Select a manager"}
+                  </option>
+
+                  {managers.map((manager) => (
+                    <option key={manager.id} value={manager.id}>
+                      {manager.name || manager.fullName || manager.email || manager.id}
+                      {manager.email &&
+                      manager.name &&
+                      manager.email !== manager.name
+                        ? ` (${manager.email})`
+                        : ""}
+                    </option>
+                  ))}
+                </select>
+
+                {!loadingManagers && managers.length === 0 && (
+                  <p className="mt-1 text-xs text-amber-700">
+                    No MANAGER users were returned. Check the users API.
+                  </p>
+                )}
+
+                <p className="mt-1 text-xs text-slate-500">
+                  Only users with the MANAGER role can be assigned.
+                </p>
+              </div>
+            )}
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label
+                  htmlFor="edit-start-date"
+                  className="mb-1 block text-sm font-medium text-slate-700"
+                >
+                  Start date
+                </label>
+                <input
+                  id="edit-start-date"
+                  type="date"
+                  name="startDate"
+                  value={form.startDate}
+                  onChange={handleChange}
+                  required
+                  className="w-full rounded-xl border border-slate-300 px-3 py-2.5"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="edit-deadline"
+                  className="mb-1 block text-sm font-medium text-slate-700"
+                >
+                  Deadline
+                </label>
+                <input
+                  id="edit-deadline"
+                  type="date"
+                  name="deadline"
+                  value={form.deadline}
+                  min={form.startDate || undefined}
+                  onChange={handleChange}
+                  required
+                  className="w-full rounded-xl border border-slate-300 px-3 py-2.5"
+                />
+              </div>
+            </div>
+
+            {actionError && (
+              <p
+                role="alert"
+                className="rounded-xl bg-red-50 p-3 text-sm text-red-700"
+              >
+                {actionError}
+              </p>
+            )}
+
+            <div className="flex flex-wrap justify-end gap-3 border-t border-slate-100 pt-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setEditing(false);
+                  setActionError("");
+                }}
+                disabled={saving}
+                className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="submit"
+                disabled={saving || (role === "ADMIN" && loadingManagers)}
+                className="rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-50"
+              >
+                Review Changes
+              </button>
+            </div>
+          </form>
+        </section>
+      )}
+
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-violet-600 via-violet-600 to-indigo-600 p-6 text-white shadow-xl sm:p-9">
+        <div className="absolute -right-12 -top-16 h-64 w-64 rounded-full bg-white/10 blur-2xl" />
+
+        <div className="relative">
+          <div className="flex items-start gap-4">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/15 text-2xl font-bold">
+              {(project.name || "P").charAt(0).toUpperCase()}
+            </div>
+
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-violet-200">
+                Project overview
+              </p>
+              <h3 className="mt-1 break-words text-xl font-bold sm:text-2xl">
+                {project.name}
+              </h3>
+              <p className="mt-3 max-w-3xl whitespace-pre-wrap text-sm leading-6 text-violet-100">
+                {project.description || "No description provided."}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-8 grid grid-cols-1 gap-5 border-t border-white/20 pt-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div>
+              <p className="text-sm text-violet-200">Start date</p>
+              <p className="mt-1 font-semibold">
+                {formatDate(project.startDate)}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-sm text-violet-200">Deadline</p>
+              <p className="mt-1 font-semibold">
+                {formatDate(project.deadline)}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-sm text-violet-200">Project status</p>
+              <p className="mt-1 font-semibold">
+                {status.replaceAll("_", " ")}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-7">
+        <h3 className="font-semibold text-slate-900">
+          Project information
+        </h3>
+        <p className="mt-1 text-sm text-slate-500">
+          Identifiers and timestamps associated with this project.
+        </p>
+
+        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <DetailItem label="Project ID" value={project.id} mono />
+          <DetailItem label="Manager ID" value={project.managerId} mono />
+          <DetailItem
+            label="Team ID"
+            value={project.teamId || "Not assigned"}
+            mono={Boolean(project.teamId)}
+          />
+          <DetailItem
+            label="Created at"
+            value={formatDate(project.createdAt)}
+          />
+          <DetailItem
+            label="Last updated"
+            value={formatDate(project.updatedAt)}
+          />
+        </div>
+      </section>
+
+      <footer className="text-center text-xs text-slate-400">
+        TeamFlow · Make teamwork flow.
+      </footer>
+
+      {/* Confirmation dialog */}
+      {confirmAction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <section
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="confirm-title"
+            aria-describedby="confirm-description"
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+          >
+            <h3
+              id="confirm-title"
+              className="text-lg font-bold text-slate-900"
+            >
+              {confirmAction === "update"
+                ? "Save project changes?"
+                : "Delete this project?"}
+            </h3>
+
+            <p
+              id="confirm-description"
+              className="mt-2 text-sm leading-6 text-slate-600"
+            >
+              {confirmAction === "update"
+                ? "Are you sure you want to update this project with these changes?"
+                : `Are you sure you want to delete "${project.name}"? This action cannot be undone.`}
+            </p>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmAction("")}
+                disabled={saving}
+                className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={handleConfirm}
+                disabled={saving}
+                className={`rounded-xl px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50 ${
+                  confirmAction === "delete"
+                    ? "bg-red-600 hover:bg-red-700"
+                    : "bg-violet-600 hover:bg-violet-700"
+                }`}
+              >
+                {saving
+                  ? "Please wait..."
+                  : confirmAction === "update"
+                    ? "OK, Update"
+                    : "OK, Delete"}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default ProjectDetailsPage;

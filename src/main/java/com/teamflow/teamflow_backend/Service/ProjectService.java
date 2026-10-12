@@ -43,16 +43,8 @@ public class ProjectService {
         project.setStatus(request.getStatus());
         project.setStartDate(request.getStartDate());
         project.setDeadline(request.getDeadline());
-        if(user.getRole() == Role.MANAGER){
+        if(user.getRole() == Role.MANAGER || user.getRole() == Role.ADMIN){
             project.setManagerId(user.getId());
-        }else if(user.getRole() == Role.ADMIN){
-            String id = request.getManagerId();
-            User requestedUser = userRepository.findById(id).orElseThrow(()-> new ResourceNotFoundException("User not found"));
-            if(requestedUser.getRole() == Role.MANAGER){
-                project.setManagerId(requestedUser.getId());
-            }else{
-                throw new BadRequestException("Selected user is not a manager");
-            }
         }
 
         project.setTeamId(request.getTeamId());
@@ -89,6 +81,7 @@ public class ProjectService {
 
 
     // UPDATE
+
     public ProjectResponse updateProject(String id, UpdateProjectRequest request) {
 
         Project project = projectRepository.findById(id)
@@ -101,11 +94,13 @@ public class ProjectService {
                 .orElseThrow(() ->
                         new ResourceNotFoundException("User not found"));
 
-        // ADMIN can update any project
-        // MANAGER can update only their own project
+        // ADMIN can update any project.
+        // MANAGER can update only their own projects.
         if (user.getRole() != Role.ADMIN) {
 
-            if (!user.getId().equals(project.getManagerId())) {
+            if (user.getRole() != Role.MANAGER ||
+                    !user.getId().equals(project.getManagerId())) {
+
                 throw new ForbiddenException(
                         "You are not allowed to update this project");
             }
@@ -118,20 +113,25 @@ public class ProjectService {
         project.setDeadline(request.getDeadline());
         project.setTeamId(request.getTeamId());
 
-        // Only ADMIN can change the project manager
+        // Only ADMIN can change the project manager.
         if (user.getRole() == Role.ADMIN) {
+
             String managerId = request.getManagerId();
 
-            User manager = userRepository.findById(managerId)
-                    .orElseThrow(() ->
-                            new ResourceNotFoundException("Manager not found"));
+            // Change manager only when a managerId is provided.
+            if (managerId != null && !managerId.isBlank()) {
 
-            if (manager.getRole() != Role.MANAGER) {
-                throw new BadRequestException(
-                        "Selected user is not a MANAGER");
+                User manager = userRepository.findById(managerId)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException("Manager not found"));
+
+                if (manager.getRole() != Role.MANAGER) {
+                    throw new BadRequestException(
+                            "Selected user is not a MANAGER");
+                }
+
+                project.setManagerId(manager.getId());
             }
-
-            project.setManagerId(manager.getId());
         }
 
         project.setUpdatedAt(new Date());
@@ -143,7 +143,9 @@ public class ProjectService {
 
 
 
+
     // DELETE
+
 
     public void deleteProject(String id) {
 
@@ -157,11 +159,13 @@ public class ProjectService {
                 .orElseThrow(() ->
                         new ResourceNotFoundException("User not found"));
 
-        // ADMIN can delete any project
-        // MANAGER can delete only their own project
+        // ADMIN can delete any project.
+        // MANAGER can delete only their own projects.
         if (user.getRole() != Role.ADMIN) {
 
-            if (!user.getId().equals(project.getManagerId())) {
+            if (user.getRole() != Role.MANAGER ||
+                    !user.getId().equals(project.getManagerId())) {
+
                 throw new ForbiddenException(
                         "You are not allowed to delete this project");
             }
