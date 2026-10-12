@@ -10,7 +10,7 @@ import {
     Routes,
     useNavigate,
 } from "react-router-dom";
-import Tasks from "../pages/TasksPage";
+import TasksPage from "../pages/TasksPage";
 import TeamsPage from "../pages/TeamsPage";
 import ProjectDetailsPage from "../pages/ProjectDetailsPage"
 
@@ -62,7 +62,7 @@ function AppRoutes() {
             >
                 <Route path="dashboard" element={<Overview />} />
                 <Route path="projects" element={<ProjectPage />} />
-                <Route path="tasks" element={<Tasks />} />
+                <Route path="tasks" element={<TasksPage />} />
                 <Route path="teams" element={<TeamsPage />} />
                 <Route
                     path="projects/:id"
