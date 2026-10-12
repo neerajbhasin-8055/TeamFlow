@@ -1,64 +1,83 @@
 
-const TASK_API_URL = "http://localhost:8081/api/tasks";
-const USER_API_URL = "http://localhost:8081/api/users";
+const API = "http://localhost:8081/api/tasks";
+const USERS_API = "http://localhost:8081/api/users/allusers";
 
-async function apiRequest(url, options = {}) {
-    const token = localStorage.getItem("token");
+async function request(url, options = {}) {
+  const token = localStorage.getItem("token");
 
-    const response = await fetch(url, {
-        ...options,
-        headers: {
-            ...(options.body ? { "Content-Type": "application/json" } : {}),
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            ...options.headers,
-        },
-    });
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers,
+    },
+  });
 
-    if (!response.ok) {
-        const text = await response.text();
-        let message = text || `Request failed (${response.status})`;
+  if (!response.ok) {
+    let message = `Request failed (${response.status}).`;
 
-        try {
-            const parsed = JSON.parse(text);
-            message = parsed.message || parsed.error || parsed.detail || message;
-        } catch {
-            // Keep the original response text.
-        }
-
-        throw new Error(message);
+    try {
+      const body = await response.json();
+      message =
+        body.message ||
+        body.error ||
+        body.detail ||
+        message;
+    } catch {
+      // The response may not contain JSON.
     }
 
-    if (response.status === 204) return null;
+    throw new Error(message);
+  }
 
-    const text = await response.text();
-    return text ? JSON.parse(text) : null;
+  if (response.status === 204) {
+    return null;
+  }
+
+  const text = await response.text();
+  return text ? JSON.parse(text) : null;
 }
 
-export function getTasks() {
-    return apiRequest(`${TASK_API_URL}/alltasks`);
-}
+// Fetch all tasks.
+export const getTasks = () => request(`${API}/alltasks`);
 
-export function createTask(data) {
-    return apiRequest(`${TASK_API_URL}/create`, {
-        method: "POST",
-        body: JSON.stringify(data),
-    });
-}
+// Fetch a task by ID.
+export const getTaskById = (id) =>
+  request(`${API}/${encodeURIComponent(id)}`);
 
-export function updateTask(id, data) {
-    return apiRequest(`${TASK_API_URL}/${encodeURIComponent(id)}`, {
-        method: "PUT",
-        body: JSON.stringify(data),
-    });
-}
+// Fetch all users for the assignee dropdown.
+export const getAllUsers = () => request(USERS_API);
 
-export function deleteTask(id) {
-    return apiRequest(`${TASK_API_URL}/${encodeURIComponent(id)}`, {
-        method: "DELETE",
-    });
-}
+// Create a task.
+export const createTask = (task) =>
+  request(`${API}/create`, {
+    method: "POST",
+    body: JSON.stringify(task),
+  });
 
-// Same endpoint and JWT handling as TeamService.
-export function getAllUsers() {
-    return apiRequest(`${USER_API_URL}/allusers`);
-}
+// Edit a complete task.
+export const updateTask = (id, task) =>
+  request(`${API}/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    body: JSON.stringify(task),
+  });
+
+// Update the status while preserving the task's other fields.
+// Uses the existing task update endpoint.
+export const updateTaskStatus = (id, task, status) =>
+  updateTask(id, {
+    title: task.title,
+    description: task.description || "",
+    projectId: task.projectId,
+    assignedTo: task.assignedTo,
+    deadline: task.deadline,
+    priority: task.priority,
+    status,
+  });
+
+// Delete a task.
+export const deleteTask = (id) =>
+  request(`${API}/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
