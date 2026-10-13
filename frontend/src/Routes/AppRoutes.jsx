@@ -4,6 +4,7 @@ import Dashboard from "../pages/Dashboard";
 import LoginPage from "../pages/LoginPage";
 import RoleDashboard from "../pages/RoleDashboard";
 import ProjectPage from "../pages/ProjectPage";
+import Settings from "../pages/Settings";
 import {
     Navigate,
     Route,
@@ -72,17 +73,7 @@ function AppRoutes() {
                 <Route path="profile" element={null} />
 
                 {/* Temporary Settings placeholder */}
-                <Route
-                    path="settings"
-                    element={
-                        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
-                            <h2 className="font-semibold text-slate-900">Settings</h2>
-                            <p className="mt-2 text-sm text-slate-500">
-                                This page has not been implemented yet.
-                            </p>
-                        </div>
-                    }
-                />
+                <Route path="settings" element={<Settings />} />
             </Route>
         </Routes>
     );
