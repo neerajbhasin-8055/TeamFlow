@@ -1,8 +1,8 @@
 
 import { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
-import ProjectCard from "../components/ProjectCard";
-import AddProjectModal from "../components/AddProjectModal";
+import ProjectCard from "../Components/ProjectCard";
+import AddProjectModal from "../Components/AddProjectModal";
 import { API_BASE_URL } from "../api";
 
 function ProjectPage() {

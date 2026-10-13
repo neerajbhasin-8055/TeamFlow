@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
-import AddProjectModal from "../components/AddProjectModal";
+import AddProjectModal from "../Components/AddProjectModal";
 import { API_BASE_URL } from "../api";
 const statusStyles = {
     IN_PROGRESS: "bg-blue-50 text-blue-700",

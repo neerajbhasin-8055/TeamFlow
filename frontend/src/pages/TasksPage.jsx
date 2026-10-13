@@ -11,8 +11,8 @@ import {
   updateTaskStatus,
 } from "../services/TaskService";
 
-import TaskCard from "../components/TaskCard";
-import TaskModal from "../components/TaskModal";
+import TaskCard from "../Components/TaskCard";
+import TaskModal from "../Components/TaskModal";
 
 const STATUS_OPTIONS = [
   { value: "ALL", label: "All statuses" },
