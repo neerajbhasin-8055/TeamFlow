@@ -3,8 +3,9 @@ import { useNavigate, useOutletContext } from "react-router-dom";
 import Overview from "./Overview";
 import { getAllTeams } from "../services/TeamService";
 import { getTasks } from "../services/TaskService";
+import { API_BASE_URL } from "../api";
 
-const API = "http://localhost:8081/api/users/me";
+const API = `${API_BASE_URL}/api/users/me`;
 const idOf = (x) => String(x?.id ?? x?._id ?? "");
 const labelStatus = (x) => String(x || "TODO").replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 

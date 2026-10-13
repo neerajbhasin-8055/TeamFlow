@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import ProjectCard from "../components/ProjectCard";
 import AddProjectModal from "../components/AddProjectModal";
+import { API_BASE_URL } from "../api";
 
 function ProjectPage() {
   const {
@@ -22,7 +23,7 @@ function ProjectPage() {
         const token = localStorage.getItem("token");
 
         const response = await fetch(
-          "http://localhost:8081/api/users/me",
+          `${API_BASE_URL}/api/users/me`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

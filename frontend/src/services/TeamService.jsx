@@ -1,4 +1,6 @@
-const API_URL = "http://localhost:8081/api/teams";
+import { API_BASE_URL } from "../api";
+
+const API_URL = `${API_BASE_URL}/api/teams`;
 
 async function apiRequest(endpoint, options = {}) {
     const token = localStorage.getItem("token");
@@ -95,7 +97,7 @@ export function removeTeamProject(teamId, projectId) {
 export function getAllUsers() {
     const token = localStorage.getItem("token");
 
-    return fetch("http://localhost:8081/api/users/allusers", {
+    return fetch(`${API_BASE_URL}/api/users/allusers`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
     }).then(async (response) => {
         if (!response.ok) {
@@ -109,7 +111,7 @@ export function getAllUsers() {
 export function getAllProjects() {
     const token = localStorage.getItem("token");
 
-    return fetch("http://localhost:8081/api/projects/allprojects", {
+    return fetch(`${API_BASE_URL}/api/projects/allprojects`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
     }).then(async (response) => {
         if (!response.ok) {
@@ -123,7 +125,7 @@ export function getAllProjects() {
 export function getCurrentUser() {
     const token = localStorage.getItem("token");
 
-    return fetch("http://localhost:8081/api/users/me", {
+    return fetch(`${API_BASE_URL}/api/users/me`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
     }).then(async (response) => {
         if (!response.ok) {

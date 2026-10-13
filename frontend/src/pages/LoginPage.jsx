@@ -1,8 +1,8 @@
 
 import { useState } from 'react'
+import { API_BASE_URL } from '../api'
 
-
-const AUTH_API = "http://localhost:8081/auth"
+const AUTH_API = `${API_BASE_URL}/auth`
 function LoginPage({onLoginSuccess}) {
   const [showPassword, setShowPassword] = useState(false)
   const [isRegister, setIsRegister] = useState(false)

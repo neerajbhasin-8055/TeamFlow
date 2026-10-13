@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { createProject } from "../services/ProjectService";
+import { API_BASE_URL } from "../api"
 const initialForm = {
     name: "",
     description: "",
@@ -25,7 +26,7 @@ function AddProjectModal({ onClose, onProjectCreated }) {
                 const token = localStorage.getItem("token");
 
                 const response = await fetch(
-                    "http://localhost:8081/api/teams",
+                    `${API_BASE_URL}/api/teams`,
                     {
                         headers: token
                             ? { Authorization: `Bearer ${token}` }

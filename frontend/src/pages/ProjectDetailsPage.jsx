@@ -23,10 +23,11 @@ import {
   getTeamMembers,
 
 } from "../services/TeamService";
+import { API_BASE_URL } from "../api";
 
 
 
-const API_URL = "http://localhost:8081/api/users";
+const API_URL = `${API_BASE_URL}/api/users`;
 
 const API_USERS_URL = `${API_URL}/me`;
 

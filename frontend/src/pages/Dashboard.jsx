@@ -4,6 +4,7 @@ import { getProjects } from "../services/ProjectService";
 import { getAllTeams } from "../services/TeamService";
 import Profile from "./Profile";
 import { useNavigate, Outlet, useLocation } from "react-router-dom";
+import { API_BASE_URL } from "../api";
 
 const navigation = [
   { label: "Overview", icon: "⌂", path: "/dashboard" },
@@ -115,7 +116,7 @@ function Dashboard({ onLogout }) {
         }
 
         const response = await fetch(
-          "http://localhost:8081/api/users/me",
+          `${API_BASE_URL}/api/users/me`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

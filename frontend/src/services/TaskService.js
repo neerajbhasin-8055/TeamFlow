@@ -1,6 +1,7 @@
 
-const API = "http://localhost:8081/api/tasks";
-const USERS_API = "http://localhost:8081/api/users/allusers";
+import { API_BASE_URL } from "../api";
+const API = `${API_BASE_URL}/api/tasks`;
+const USERS_API = `${API_BASE_URL}/api/users/allusers`;
 
 async function request(url, options = {}) {
   const token = localStorage.getItem("token");

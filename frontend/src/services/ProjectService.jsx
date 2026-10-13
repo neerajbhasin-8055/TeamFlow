@@ -1,5 +1,6 @@
+import { API_BASE_URL } from "../api";
 
-const API_URL = "http://localhost:8081/api/projects";
+const API_URL = `${API_BASE_URL}/api/projects`;
 
 export async function getProjects() {
   const token = localStorage.getItem("token");

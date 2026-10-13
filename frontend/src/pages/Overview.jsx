@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import AddProjectModal from "../components/AddProjectModal";
-
+import { API_BASE_URL } from "../api";
 const statusStyles = {
     IN_PROGRESS: "bg-blue-50 text-blue-700",
     TODO: "bg-amber-50 text-amber-700",
@@ -116,7 +116,7 @@ function Overview() {
                 const token = localStorage.getItem("token");
 
                 const response = await fetch(
-                    "http://localhost:8081/api/users/me",
+                    `${API_BASE_URL}/api/users/me`,
                     {
                         headers: {
                             Authorization: `Bearer ${token}`,
