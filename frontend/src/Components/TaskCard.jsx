@@ -59,6 +59,8 @@ export default function TaskCard({
   onEdit,
   onDelete,
   onStatusChange,
+  canEdit = true,
+  canDelete = true,
   statusUpdating = false,
   deleting = false,
 }) {
@@ -180,23 +182,23 @@ export default function TaskCard({
           {statusUpdating ? "Updating..." : "Change Status"}
         </button>
 
-        <button
+        {canEdit && <button
           type="button"
           onClick={() => onEdit(task)}
           disabled={statusUpdating || deleting}
           className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Edit
-        </button>
+        </button>}
 
-        <button
+        {canDelete && <button
           type="button"
           onClick={() => onDelete(task)}
           disabled={statusUpdating || deleting}
           className="rounded-xl border border-red-200 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {deleting ? "Deleting..." : "Delete"}
-        </button>
+        </button>}
       </div>
 
       {/* Compact status selector */}

@@ -67,6 +67,9 @@ function SelectField({ label, value, onChange, options }) {
 export default function TasksPage() {
   const outlet = useOutletContext() || {};
   const projects = outlet.projects || [];
+  const currentUser = outlet.currentUser || null;
+  const role = String(currentUser?.role || "").replace(/^ROLE_/, "").toUpperCase();
+  const canManageTasks = role === "ADMIN" || role === "MANAGER";
 
   const [tasks, setTasks] = useState([]);
   const [users, setUsers] = useState([]);
@@ -109,6 +112,12 @@ export default function TasksPage() {
   }, []);
 
   const loadUsers = useCallback(async () => {
+    if (role === "USER") {
+      setUsers([]);
+      setUsersLoading(false);
+      setUsersError("");
+      return;
+    }
     setUsersLoading(true);
     setUsersError("");
 
@@ -126,17 +135,27 @@ export default function TasksPage() {
     } finally {
       setUsersLoading(false);
     }
-  }, []);
+  }, [role]);
 
   useEffect(() => {
     loadTasks();
-    loadUsers();
-  }, [loadTasks, loadUsers]);
+    if (role) loadUsers();
+  }, [loadTasks, loadUsers, role]);
+
+  const visibleTasks = useMemo(() => {
+    if (!currentUser || !role) return [];
+    if (role === "ADMIN") return tasks;
+    if (role === "MANAGER") {
+      const projectIds = new Set(projects.map((project) => String(getId(project))));
+      return tasks.filter((task) => projectIds.has(String(task.projectId)));
+    }
+    return tasks.filter((task) => String(task.assignedTo) === String(currentUser.id));
+  }, [tasks, projects, currentUser, role]);
 
   const filteredTasks = useMemo(() => {
     const query = search.trim().toLowerCase();
 
-    return tasks.filter((task) => {
+    return visibleTasks.filter((task) => {
       const matchesSearch =
         !query ||
         (task.title || "").toLowerCase().includes(query) ||
@@ -153,17 +172,17 @@ export default function TasksPage() {
 
       return matchesSearch && matchesStatus && matchesPriority;
     });
-  }, [tasks, search, statusFilter, priorityFilter]);
+  }, [visibleTasks, search, statusFilter, priorityFilter]);
 
-  const todoCount = tasks.filter(
+  const todoCount = visibleTasks.filter(
     (task) => (task.status || "TODO").toUpperCase() === "TODO"
   ).length;
 
-  const inProgressCount = tasks.filter(
+  const inProgressCount = visibleTasks.filter(
     (task) => (task.status || "").toUpperCase() === "IN_PROGRESS"
   ).length;
 
-  const doneCount = tasks.filter(
+  const doneCount = visibleTasks.filter(
     (task) => (task.status || "").toUpperCase() === "DONE"
   ).length;
 
@@ -330,14 +349,14 @@ export default function TasksPage() {
           </p>
         </div>
 
-        <button
+        {canManageTasks && <button
           type="button"
           onClick={openCreateModal}
           className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-300 focus:ring-offset-2"
         >
           <span className="text-lg leading-none">+</span>
           Create Task
-        </button>
+        </button>}
       </header>
 
       {/* Alerts */}
@@ -450,7 +469,7 @@ export default function TasksPage() {
 
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
           <p className="text-xs text-slate-400">
-            Showing {filteredTasks.length} of {tasks.length} tasks
+            Showing {filteredTasks.length} of {visibleTasks.length} tasks
           </p>
 
           {(search || statusFilter !== "ALL" || priorityFilter !== "ALL") && (
@@ -504,7 +523,7 @@ export default function TasksPage() {
               : "Try changing your search or filters to find the task you're looking for."}
           </p>
 
-          {tasks.length === 0 && (
+          {canManageTasks && visibleTasks.length === 0 && (
             <button
               type="button"
               onClick={openCreateModal}
@@ -525,6 +544,8 @@ export default function TasksPage() {
                 task={task}
                 projects={projects}
                 users={users}
+                canEdit={canManageTasks}
+                canDelete={canManageTasks}
                 onEdit={openEditModal}
                 onDelete={handleDeleteTask}
                 onStatusChange={handleStatusChange}
@@ -537,7 +558,7 @@ export default function TasksPage() {
       )}
 
       {/* Existing create/edit modal */}
-      {modalOpen && (
+      {modalOpen && canManageTasks && (
         <TaskModal
           task={editingTask}
           projects={projects}

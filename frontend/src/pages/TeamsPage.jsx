@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useOutletContext } from "react-router-dom";
 import {
     addTeamMember,
     addTeamProject,
@@ -61,6 +62,8 @@ function getInitials(name = "") {
 }
 
 export default function TeamsPage() {
+    const outlet = useOutletContext() || {};
+    const scopedProjects = outlet.projects || [];
     const [teams, setTeams] = useState([]);
     const [currentUser, setCurrentUser] = useState(null);
     const [users, setUsers] = useState([]);
@@ -128,7 +131,19 @@ export default function TeamsPage() {
     console.log("Filtered teams:", filteredTeams);
 }, [teams, search]);
 
-    const filteredTeams = teams.filter((team) => {
+    const roleVisibleTeams = teams.filter((team) => {
+        if (role === "ADMIN") return true;
+        if (!currentUserId) return false;
+        if (role === "MANAGER") {
+            const projectIds = new Set(scopedProjects.map((project) => String(project.id ?? project._id)));
+            return String(team.createdBy) === String(currentUserId) ||
+                (team.projectIds || []).some((id) => projectIds.has(String(id))) ||
+                scopedProjects.some((project) => String(project.teamId) === String(team.id));
+        }
+        return (team.memberIds || []).some((id) => String(id) === String(currentUserId));
+    });
+
+    const filteredTeams = roleVisibleTeams.filter((team) => {
         const query = search.trim().toLowerCase();
 
         if (!query) return true;
@@ -145,9 +160,9 @@ export default function TeamsPage() {
     });
 
 
-    const myTeams = teams.filter(
-        (team) => team.createdBy === currentUserId
-    );
+    const myTeams = role === "USER"
+        ? teams.filter((team) => (team.memberIds || []).some((id) => String(id) === String(currentUserId)))
+        : teams.filter((team) => String(team.createdBy) === String(currentUserId));
 
     function openCreateModal() {
         setEditingTeam(null);
@@ -399,13 +414,13 @@ export default function TeamsPage() {
                     </p>
                 </div>
 
-                <button
+                {(role === "ADMIN" || role === "MANAGER") && <button
                     onClick={openCreateModal}
                     className="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2"
                 >
                     <span className="text-lg leading-none">+</span>
                     Create team
-                </button>
+                </button>}
             </div>
 
             {/* Feedback */}
@@ -533,7 +548,7 @@ export default function TeamsPage() {
                                 ? "Try another team name or description."
                                 : "Create your first team to start organizing people and projects."}
                         </p>
-                        {!search && (
+                        {!search && (role === "ADMIN" || role === "MANAGER") && (
                             <button
                                 onClick={openCreateModal}
                                 className="mt-5 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-700"
@@ -596,7 +611,7 @@ export default function TeamsPage() {
                                             View details
                                         </button>
 
-                                        {isCreator && (
+                                        {(isCreator || role === "ADMIN" || (role === "MANAGER" && scopedProjects.some((project) => String(project.teamId) === String(team.id)))) && (
                                             <>
                                                 <button
                                                     onClick={() => openEditModal(team)}

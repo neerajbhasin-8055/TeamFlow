@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Dashboard from "../pages/Dashboard";
 import LoginPage from "../pages/LoginPage";
-import Overview from "../pages/Overview";
+import RoleDashboard from "../pages/RoleDashboard";
 import ProjectPage from "../pages/ProjectPage";
 import {
     Navigate,
@@ -60,7 +60,7 @@ function AppRoutes() {
                     )
                 }
             >
-                <Route path="dashboard" element={<Overview />} />
+                <Route path="dashboard" element={<RoleDashboard />} />
                 <Route path="projects" element={<ProjectPage />} />
                 <Route path="tasks" element={<TasksPage />} />
                 <Route path="teams" element={<TeamsPage />} />

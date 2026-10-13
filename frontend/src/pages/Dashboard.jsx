@@ -1,6 +1,7 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getProjects } from "../services/ProjectService";
+import { getAllTeams } from "../services/TeamService";
 import Profile from "./Profile";
 import { useNavigate, Outlet, useLocation } from "react-router-dom";
 
@@ -54,6 +55,7 @@ function Dashboard({ onLogout }) {
 
   const [currentUser, setCurrentUser] = useState(null);
   const [userError, setUserError] = useState("");
+  const [teams, setTeams] = useState([]);
 
   function handleProfileClick() {
     navigate("/profile");
@@ -150,8 +152,34 @@ function Dashboard({ onLogout }) {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    getAllTeams()
+      .then((data) => { if (!cancelled && Array.isArray(data)) setTeams(data); })
+      .catch(() => { if (!cancelled) setTeams([]); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const normalizedRole = String(currentUser?.role || "").replace(/^ROLE_/, "").toUpperCase();
+  const scopedProjects = useMemo(() => {
+    if (!currentUser) return projects;
+    if (normalizedRole === "ADMIN") return projects;
+    if (normalizedRole === "MANAGER") {
+      const managedTeamIds = new Set(teams.filter((team) => String(team.createdBy) === String(currentUser.id)).map((team) => String(team.id)));
+      return projects.filter((project) => String(project.managerId) === String(currentUser.id) || managedTeamIds.has(String(project.teamId)));
+    }
+    const memberTeams = teams.filter((team) => (team.memberIds || []).some((memberId) => String(memberId) === String(currentUser.id)));
+    const teamIds = new Set(memberTeams.map((team) => String(team.id)));
+    const projectIds = new Set(memberTeams.flatMap((team) => team.projectIds || []).map(String));
+    return projects.filter((project) => teamIds.has(String(project.teamId)) || projectIds.has(String(project.id)));
+  }, [projects, teams, currentUser, normalizedRole]);
+
   const outletContext = {
-    projects,
+    projects: scopedProjects,
+    allProjects: projects,
+    teams,
+    currentUser,
+    role: normalizedRole,
     setProjects,
     loadingProjects,
     projectError,
