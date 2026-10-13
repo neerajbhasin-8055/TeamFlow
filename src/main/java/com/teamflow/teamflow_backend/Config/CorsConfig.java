@@ -19,7 +19,8 @@ public class CorsConfig {
 
         // Allow requests from the React + Vite frontend
         config.setAllowedOrigins(
-                List.of("http://localhost:5173")
+                List.of("http://localhost:5173","https://team-flo.netlify.app"
+                )
         );
 
         // Allow these HTTP methods
