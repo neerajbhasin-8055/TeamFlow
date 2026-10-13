@@ -114,6 +114,13 @@ function Settings() {
   const [savedMessage, setSavedMessage] = useState("");
   const [showReset, setShowReset] = useState(false);
 
+  const pagePadding =
+  settings.density === "compact" ? "p-3 sm:p-5" : "p-4 sm:p-7";
+
+const cardPadding =
+  settings.density === "compact" ? "p-4 sm:p-5" : "p-5 sm:p-6";
+
+
   const accent = accents[settings.accent] || accents.violet;
   const isDark = settings.theme === "dark";
 
@@ -134,6 +141,13 @@ function Settings() {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
   }, [settings]);
+
+  useEffect(() => {
+  document.documentElement.classList.toggle(
+    "dark",
+    settings.theme === "dark"
+  );
+}, [settings.theme]);
 
   function update(key, value) {
     setSettings((previous) => ({ ...previous, [key]: value }));
